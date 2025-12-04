@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, qr, visits, puntos  # <-- Agregar puntos
+from app.routers import auth, qr, visits, puntos, alertas  # <-- Agregar alertas
 
 app = FastAPI(
     title="Sistema de Recorridas QR",
@@ -21,7 +21,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(qr.router)
 app.include_router(visits.router)
-app.include_router(puntos.router)  # <-- Agregar esta línea
+app.include_router(puntos.router)
+app.include_router(alertas.router)  # <-- Agregar esta línea
 
 @app.get("/")
 async def root():

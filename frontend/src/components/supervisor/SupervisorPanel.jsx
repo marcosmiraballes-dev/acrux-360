@@ -3,6 +3,7 @@ import Dashboard from './Dashboard';
 import MapView from './MapView';
 import GuardiasList from './GuardiasList';
 import RecentVisits from './RecentVisits';
+import Alertas from './Alertas';  // <-- NUEVO
 import api from '../../services/api';
 
 function SupervisorPanel({ user }) {
@@ -10,21 +11,24 @@ function SupervisorPanel({ user }) {
   const [visitas, setVisitas] = useState([]);
   const [puntos, setPuntos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [alertasCount, setAlertasCount] = useState(0);  // <-- NUEVO
 
   useEffect(() => {
     loadData();
+    loadAlertasCount();  // <-- NUEVO
     // Recargar cada minuto
-    const interval = setInterval(loadData, 60000);
+    const interval = setInterval(() => {
+      loadData();
+      loadAlertasCount();  // <-- NUEVO
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
     try {
-      // Cargar visitas
       const visitasData = await api.getVisits(user.servicio_id);
       setVisitas(visitasData);
 
-      // Cargar puntos QR desde el backend
       const puntosData = await api.getPuntos(user.servicio_id);
       setPuntos(puntosData);
 
@@ -32,6 +36,16 @@ function SupervisorPanel({ user }) {
     } catch (error) {
       console.error('Error loading data:', error);
       setLoading(false);
+    }
+  };
+
+  // <-- NUEVO
+  const loadAlertasCount = async () => {
+    try {
+      const countData = await api.getAlertasCount(user.servicio_id);
+      setAlertasCount(countData.total);
+    } catch (error) {
+      console.error('Error loading alertas count:', error);
     }
   };
 
@@ -61,10 +75,11 @@ function SupervisorPanel({ user }) {
         overflowX: 'auto'
       }}>
         {[
-          { id: 'dashboard', label: '📊 Dashboard', icon: '📊' },
-          { id: 'mapa', label: '🗺️ Mapa', icon: '🗺️' },
-          { id: 'guardias', label: '👥 Guardias', icon: '👥' },
-          { id: 'recientes', label: '🕐 Recientes', icon: '🕐' }
+          { id: 'dashboard', label: '📊 Dashboard' },
+          { id: 'mapa', label: '🗺️ Mapa' },
+          { id: 'guardias', label: '👥 Guardias' },
+          { id: 'alertas', label: '🔔 Alertas', badge: alertasCount },  // <-- NUEVO
+          { id: 'recientes', label: '🕐 Recientes' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -79,10 +94,31 @@ function SupervisorPanel({ user }) {
               fontWeight: activeTab === tab.id ? 'bold' : 'normal',
               fontSize: '16px',
               transition: 'all 0.3s',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              position: 'relative'
             }}
           >
             {tab.label}
+            {/* Badge de contador */}
+            {tab.badge > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                background: '#f44336',
+                color: 'white',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: 'bold'
+              }}>
+                {tab.badge > 99 ? '99+' : tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -92,6 +128,7 @@ function SupervisorPanel({ user }) {
         {activeTab === 'dashboard' && <Dashboard servicioId={user.servicio_id} />}
         {activeTab === 'mapa' && <MapView puntos={puntos} visitas={visitas} />}
         {activeTab === 'guardias' && <GuardiasList servicioId={user.servicio_id} visitas={visitas} />}
+        {activeTab === 'alertas' && <Alertas servicioId={user.servicio_id} />}  {/* <-- NUEVO */}
         {activeTab === 'recientes' && <RecentVisits visitas={visitas} />}
       </div>
     </div>

@@ -101,7 +101,7 @@ class ApiService {
     });
   }
 
-  // PUNTOS QR - NUEVO
+// PUNTOS QR
   async getPuntos(servicioId = null) {
     const query = servicioId ? `?servicio_id=${servicioId}` : '';
     return this.request(`/puntos/${query}`);
@@ -109,6 +109,17 @@ class ApiService {
 
   async getPunto(puntoId) {
     return this.request(`/puntos/${puntoId}`);
+  }
+
+  // ALERTAS - NUEVO
+  async getAlertas(servicioId = null) {
+    const query = servicioId ? `?servicio_id=${servicioId}` : '';
+    return this.request(`/alertas/${query}`);
+  }
+
+  async getAlertasCount(servicioId = null) {
+    const query = servicioId ? `?servicio_id=${servicioId}` : '';
+    return this.request(`/alertas/count${query}`);
   }
 }
 
