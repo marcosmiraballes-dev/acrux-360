@@ -3,6 +3,7 @@ import { usuariosAPI, serviciosAPI, puntosAdminAPI } from '../../services/adminA
 import UsuariosAdmin from './UsuariosAdmin';
 import ServiciosAdmin from './ServiciosAdmin';
 import PuntosAdmin from './PuntosAdmin';
+import GeneradorQR from './GeneradorQR';
 import './AdminPanel.css';
 
 const AdminPanel = () => {
@@ -175,6 +176,12 @@ const AdminPanel = () => {
           >
             📍 Puntos QR
           </button>
+          <button
+            className={activeTab === 'generador' ? 'active' : ''}
+            onClick={() => setActiveTab('generador')}
+          >
+            📱 Generar QR
+          </button>
         </div>
       </div>
 
@@ -183,6 +190,7 @@ const AdminPanel = () => {
         {activeTab === 'usuarios' && <UsuariosAdmin onUpdate={cargarEstadisticas} />}
         {activeTab === 'servicios' && <ServiciosAdmin onUpdate={cargarEstadisticas} />}
         {activeTab === 'puntos' && <PuntosAdmin onUpdate={cargarEstadisticas} />}
+        {activeTab === 'generador' && <GeneradorQR />}
       </div>
     </div>
   );
