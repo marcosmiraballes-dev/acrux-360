@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import storage from '../services/storage';
 
-function VisitForm({ qrData, user, onSuccess, onCancel }) {
+function VisitForm({ qrData, user, onSuccess, onCancel, devMode = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tipo, setTipo] = useState('normal');
@@ -30,7 +30,18 @@ function VisitForm({ qrData, user, onSuccess, onCancel }) {
 
       setPuntoInfo(qrValidation);
 
-      // Obtener ubicación GPS
+      // MODO DESARROLLO: Simular GPS válido
+      if (devMode) {
+        setLocation({ 
+          lat: qrValidation.punto_lat, 
+          lng: qrValidation.punto_lng 
+        });
+        setGpsValid(true);
+        setLoading(false);
+        return;
+      }
+
+      // Obtener ubicación GPS real
       if (!navigator.geolocation) {
         setError('Tu dispositivo no soporta geolocalización');
         setLoading(false);
@@ -101,12 +112,10 @@ function VisitForm({ qrData, user, onSuccess, onCancel }) {
     };
 
     try {
-      // Intentar guardar online
       await api.createVisit(visitData);
       alert('✅ Visita registrada correctamente');
       if (onSuccess) onSuccess();
     } catch (err) {
-      // Si falla, guardar offline
       console.log('Sin conexión, guardando offline...');
       await storage.saveVisitOffline(visitData);
       alert('📴 Visita guardada offline. Se sincronizará cuando haya conexión.');
@@ -123,6 +132,18 @@ function VisitForm({ qrData, user, onSuccess, onCancel }) {
   return (
     <div style={{ maxWidth: '500px', margin: '0 auto', padding: '20px' }}>
       <h2>📝 Registrar Visita</h2>
+
+      {devMode && (
+        <div style={{
+          background: '#fff3cd',
+          padding: '10px',
+          borderRadius: '8px',
+          marginBottom: '15px',
+          color: '#856404'
+        }}>
+          🔧 Modo Prueba: GPS automáticamente válido
+        </div>
+      )}
 
       {puntoInfo && (
         <div style={{ 

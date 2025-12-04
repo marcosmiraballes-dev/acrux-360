@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import QRScanner from './components/QRScanner';
 import VisitForm from './components/VisitForm';
 import VisitList from './components/VisitList';
+import SupervisorPanel from './components/supervisor/SupervisorPanel';
 import api from './services/api';
 import storage from './services/storage';
 import sync from './services/sync';
@@ -9,15 +10,15 @@ import sync from './services/sync';
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('login'); // login, scanner, form, list
+  const [view, setView] = useState('login'); // login, scanner, form, list, supervisor
   const [qrData, setQrData] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState(null);
+  const [devMode, setDevMode] = useState(true); // MODO DESARROLLO
 
   useEffect(() => {
     checkAuth();
-    // Iniciar sincronización automática
-    sync.startAutoSync(5); // cada 5 minutos
+    sync.startAutoSync(5);
   }, []);
 
   const checkAuth = async () => {
@@ -30,7 +31,12 @@ function App() {
         if (!savedUser) {
           await storage.saveUser(userData);
         }
-        setView('scanner');
+        // Redirigir según el rol
+        if (userData.rol === 'supervisor' || userData.rol === 'administrador') {
+          setView('supervisor');
+        } else {
+          setView('scanner');
+        }
       } catch (error) {
         console.error('Token inválido:', error);
         localStorage.removeItem('token');
@@ -48,7 +54,13 @@ function App() {
       const response = await api.login(loginForm.email, loginForm.password);
       setUser(response.user);
       await storage.saveUser(response.user);
-      setView('scanner');
+      
+      // Redirigir según el rol
+      if (response.user.rol === 'supervisor' || response.user.rol === 'administrador') {
+        setView('supervisor');
+      } else {
+        setView('scanner');
+      }
     } catch (error) {
       setLoginError(error.message || 'Error al iniciar sesión');
     } finally {
@@ -67,6 +79,13 @@ function App() {
   const handleQRScan = (data) => {
     console.log('QR escaneado:', data);
     setQrData(data);
+    setView('form');
+  };
+
+  const handleSimulateQR = () => {
+    const simulatedQR = 'servicio:a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d:punto:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    console.log('QR simulado:', simulatedQR);
+    setQrData(simulatedQR);
     setView('form');
   };
 
@@ -105,9 +124,12 @@ function App() {
         borderRadius: '8px',
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
       }}>
-        <h1 style={{ textAlign: 'center', color: '#1976d2' }}>
+        <h1 style={{ textAlign: 'center', color: '#1976d2', marginBottom: '10px' }}>
           🔐 Sistema de Recorridas QR
         </h1>
+        <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Ingresa tus credenciales para continuar
+        </p>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '15px' }}>
@@ -119,6 +141,7 @@ function App() {
               value={loginForm.email}
               onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
               required
+              placeholder="usuario@ejemplo.com"
               style={{
                 width: '100%',
                 padding: '10px',
@@ -138,6 +161,7 @@ function App() {
               value={loginForm.password}
               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
               required
+              placeholder="••••••••"
               style={{
                 width: '100%',
                 padding: '10px',
@@ -154,9 +178,10 @@ function App() {
               color: '#c62828',
               padding: '10px',
               borderRadius: '4px',
-              marginBottom: '15px'
+              marginBottom: '15px',
+              fontSize: '14px'
             }}>
-              {loginError}
+              ⚠️ {loginError}
             </div>
           )}
 
@@ -172,11 +197,26 @@ function App() {
               background: loading ? '#ccc' : '#1976d2',
               border: 'none',
               borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer'
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginBottom: '15px'
             }}
           >
             {loading ? '⏳ Ingresando...' : '🔑 Ingresar'}
           </button>
+
+          <div style={{ 
+            padding: '15px', 
+            background: '#f5f5f5', 
+            borderRadius: '4px',
+            fontSize: '13px',
+            color: '#666'
+          }}>
+            <strong>Usuarios de prueba:</strong><br/>
+            • Guardia: guardia@ejemplo.com<br/>
+            • Supervisor: supervisor@ejemplo.com<br/>
+            • Admin: admin@ejemplo.com<br/>
+            <em>Contraseña: password123</em>
+          </div>
         </form>
       </div>
     );
@@ -205,93 +245,154 @@ function App() {
               👤 {user?.nombre} - {user?.rol}
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '8px 16px',
-              background: '#d32f2f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            🚪 Salir
-          </button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {devMode && (
+              <span style={{ 
+                background: '#ff9800', 
+                padding: '4px 8px', 
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                🔧 MODO PRUEBA
+              </span>
+            )}
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '8px 16px',
+                background: '#d32f2f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              🚪 Salir
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* NAVIGATION */}
-      <nav style={{
-        background: 'white',
-        borderBottom: '1px solid #e0e0e0',
-        padding: '10px 20px'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          gap: '10px'
+      {/* NAVIGATION - Solo para guardias */}
+      {user?.rol === 'guardia' && (
+        <nav style={{
+          background: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '10px 20px'
         }}>
-          <button
-            onClick={() => {
-              setQrData(null);
-              setView('scanner');
-            }}
-            style={{
-              padding: '10px 20px',
-              background: view === 'scanner' ? '#1976d2' : 'white',
-              color: view === 'scanner' ? 'white' : '#1976d2',
-              border: '2px solid #1976d2',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            📷 Escanear QR
-          </button>
+          <div style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            display: 'flex',
+            gap: '10px'
+          }}>
+            <button
+              onClick={() => {
+                setQrData(null);
+                setView('scanner');
+              }}
+              style={{
+                padding: '10px 20px',
+                background: view === 'scanner' ? '#1976d2' : 'white',
+                color: view === 'scanner' ? 'white' : '#1976d2',
+                border: '2px solid #1976d2',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              📷 Escanear QR
+            </button>
 
-          <button
-            onClick={() => setView('list')}
-            style={{
-              padding: '10px 20px',
-              background: view === 'list' ? '#1976d2' : 'white',
-              color: view === 'list' ? 'white' : '#1976d2',
-              border: '2px solid #1976d2',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            📋 Historial
-          </button>
-        </div>
-      </nav>
+            <button
+              onClick={() => setView('list')}
+              style={{
+                padding: '10px 20px',
+                background: view === 'list' ? '#1976d2' : 'white',
+                color: view === 'list' ? 'white' : '#1976d2',
+                border: '2px solid #1976d2',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              📋 Historial
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* CONTENT */}
       <main style={{ padding: '20px' }}>
-        {view === 'scanner' && !qrData && (
-          <div>
-            <h2 style={{ textAlign: 'center' }}>📷 Escanea un código QR</h2>
-            <QRScanner 
-              onScan={handleQRScan}
-              onError={(err) => console.error('Error de cámara:', err)}
-            />
-          </div>
+        {/* VISTA SUPERVISOR */}
+        {view === 'supervisor' && (user?.rol === 'supervisor' || user?.rol === 'administrador') && (
+          <SupervisorPanel user={user} />
         )}
 
-        {view === 'form' && qrData && (
-          <VisitForm
-            qrData={qrData}
-            user={user}
-            onSuccess={handleVisitSuccess}
-            onCancel={handleVisitCancel}
-          />
-        )}
+        {/* VISTAS GUARDIA */}
+        {user?.rol === 'guardia' && (
+          <>
+            {view === 'scanner' && !qrData && (
+              <div>
+                <h2 style={{ textAlign: 'center' }}>📷 Escanea un código QR</h2>
+                
+                {devMode && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    marginBottom: '20px',
+                    padding: '20px',
+                    background: '#fff3cd',
+                    borderRadius: '8px',
+                    border: '2px dashed #ff9800'
+                  }}>
+                    <p style={{ marginBottom: '10px', color: '#856404' }}>
+                      🔧 <strong>Modo Prueba:</strong> Simula el escaneo de un QR
+                    </p>
+                    <button
+                      onClick={handleSimulateQR}
+                      style={{
+                        padding: '15px 30px',
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                        background: '#ff9800',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      🎯 SIMULAR ESCANEO QR
+                    </button>
+                    <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                      Punto: Entrada Principal - Edificio Central
+                    </p>
+                  </div>
+                )}
 
-        {view === 'list' && (
-          <VisitList user={user} />
+                <QRScanner 
+                  onScan={handleQRScan}
+                  onError={(err) => console.error('Error de cámara:', err)}
+                />
+              </div>
+            )}
+
+            {view === 'form' && qrData && (
+              <VisitForm
+                qrData={qrData}
+                user={user}
+                onSuccess={handleVisitSuccess}
+                onCancel={handleVisitCancel}
+                devMode={devMode}
+              />
+            )}
+
+            {view === 'list' && (
+              <VisitList user={user} />
+            )}
+          </>
         )}
       </main>
     </div>
