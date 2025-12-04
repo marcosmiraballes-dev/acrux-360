@@ -24,31 +24,9 @@ function SupervisorPanel({ user }) {
       const visitasData = await api.getVisits(user.servicio_id);
       setVisitas(visitasData);
 
-      // Cargar puntos QR (necesitamos crear este endpoint)
-      // Por ahora usamos datos mock
-      setPuntos([
-        {
-          id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-          nombre: 'Entrada Principal',
-          descripcion: 'Punto de control en entrada',
-          latitud: 20.6296,
-          longitud: -87.0739
-        },
-        {
-          id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-          nombre: 'Piso 2 - Pasillo A',
-          descripcion: 'Control pasillo norte',
-          latitud: 20.6297,
-          longitud: -87.0740
-        },
-        {
-          id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-          nombre: 'Estacionamiento',
-          descripcion: 'Control área de estacionamiento',
-          latitud: 20.6298,
-          longitud: -87.0741
-        }
-      ]);
+      // Cargar puntos QR desde el backend
+      const puntosData = await api.getPuntos(user.servicio_id);
+      setPuntos(puntosData);
 
       setLoading(false);
     } catch (error) {

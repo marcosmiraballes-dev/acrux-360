@@ -100,6 +100,16 @@ class ApiService {
       }),
     });
   }
+
+  // PUNTOS QR - NUEVO
+  async getPuntos(servicioId = null) {
+    const query = servicioId ? `?servicio_id=${servicioId}` : '';
+    return this.request(`/puntos/${query}`);
+  }
+
+  async getPunto(puntoId) {
+    return this.request(`/puntos/${puntoId}`);
+  }
 }
 
 export default new ApiService();

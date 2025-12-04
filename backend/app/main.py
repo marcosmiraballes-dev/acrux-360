@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, qr, visits
+from app.routers import auth, qr, visits, puntos  # <-- Agregar puntos
 
 app = FastAPI(
     title="Sistema de Recorridas QR",
@@ -11,7 +11,7 @@ app = FastAPI(
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especifica los dominios permitidos
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(qr.router)
 app.include_router(visits.router)
+app.include_router(puntos.router)  # <-- Agregar esta línea
 
 @app.get("/")
 async def root():
