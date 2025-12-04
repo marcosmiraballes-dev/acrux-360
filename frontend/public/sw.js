@@ -29,8 +29,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Intercepción de peticiones
+// Intercepción de peticiones - NO cachear peticiones al backend
 self.addEventListener('fetch', (event) => {
+  // Ignorar peticiones al backend (API)
+  if (event.request.url.includes('127.0.0.1:3001') || 
+      event.request.url.includes('localhost:3001')) {
+    return; // Dejar que la petición pase sin interceptar
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

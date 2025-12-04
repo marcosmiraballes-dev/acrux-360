@@ -20,6 +20,10 @@ def get_password_hash(password: str) -> str:
     """Genera hash de contraseña"""
     return pwd_context.hash(password)
 
+def hash_password(password: str) -> str:
+    """Genera hash de contraseña (alias de get_password_hash para compatibilidad)"""
+    return get_password_hash(password)
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Crea token JWT"""
     to_encode = data.copy()
@@ -58,11 +62,9 @@ async def get_current_user(
             detail="No se pudo validar las credenciales",
         )
     
-    # Obtener usuario de Supabase
+    # Obtener usuario de Supabase SIN JOIN
     supabase = get_supabase_client()
-    response = supabase.table("usuarios").select(
-        "*, servicios(nombre)"
-    ).eq("id", user_id).execute()
+    response = supabase.table("usuarios").select("*").eq("id", user_id).execute()
     
     if not response.data:
         raise HTTPException(
@@ -72,13 +74,23 @@ async def get_current_user(
     
     user_data = response.data[0]
     
+    # Obtener nombre del servicio si existe servicio_id
+    servicio_nombre = None
+    if user_data.get("servicio_id"):
+        try:
+            servicio_response = supabase.table("servicios").select("nombre").eq("id", user_data["servicio_id"]).execute()
+            if servicio_response.data:
+                servicio_nombre = servicio_response.data[0]["nombre"]
+        except:
+            pass
+    
     return UserResponse(
         id=user_data["id"],
         email=user_data["email"],
         nombre=user_data["nombre"],
         rol=user_data["rol"],
         servicio_id=user_data.get("servicio_id"),
-        servicio_nombre=user_data["servicios"]["nombre"] if user_data.get("servicios") else None
+        servicio_nombre=servicio_nombre
     )
 
 def require_role(allowed_roles: list[str]):

@@ -3,6 +3,7 @@ import QRScanner from './components/QRScanner';
 import VisitForm from './components/VisitForm';
 import VisitList from './components/VisitList';
 import SupervisorPanel from './components/supervisor/SupervisorPanel';
+import AdminPanel from './components/admin/AdminPanel';
 import api from './services/api';
 import storage from './services/storage';
 import sync from './services/sync';
@@ -10,7 +11,7 @@ import sync from './services/sync';
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('login'); // login, scanner, form, list, supervisor
+  const [view, setView] = useState('login'); // login, scanner, form, list, supervisor, admin
   const [qrData, setQrData] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState(null);
@@ -32,7 +33,9 @@ function App() {
           await storage.saveUser(userData);
         }
         // Redirigir según el rol
-        if (userData.rol === 'supervisor' || userData.rol === 'administrador') {
+        if (userData.rol === 'admin' || userData.rol === 'administrador') {
+          setView('admin');
+        } else if (userData.rol === 'supervisor') {
           setView('supervisor');
         } else {
           setView('scanner');
@@ -56,7 +59,9 @@ function App() {
       await storage.saveUser(response.user);
       
       // Redirigir según el rol
-      if (response.user.rol === 'supervisor' || response.user.rol === 'administrador') {
+      if (response.user.rol === 'admin' || response.user.rol === 'administrador') {
+        setView('admin');
+      } else if (response.user.rol === 'supervisor') {
         setView('supervisor');
       } else {
         setView('scanner');
@@ -227,28 +232,30 @@ function App() {
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       {/* HEADER */}
       <header style={{
-        background: '#1976d2',
+        background: (user?.rol === 'admin' || user?.rol === 'administrador') ? '#ff9800' : '#1976d2',
         color: 'white',
         padding: '15px 20px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <div style={{
-          maxWidth: '1200px',
+          maxWidth: '1400px',
           margin: '0 auto',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '20px' }}>Sistema de Recorridas QR</h1>
+            <h1 style={{ margin: 0, fontSize: '20px' }}>
+              {(user?.rol === 'admin' || user?.rol === 'administrador') ? '⚙️ Panel de Administración' : 'Sistema de Recorridas QR'}
+            </h1>
             <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-              👤 {user?.nombre} - {user?.rol}
+              👤 {user?.nombre} - {(user?.rol === 'admin' || user?.rol === 'administrador') ? 'Administrador' : user?.rol}
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             {devMode && (
               <span style={{ 
-                background: '#ff9800', 
+                background: (user?.rol === 'admin' || user?.rol === 'administrador') ? '#f57c00' : '#ff9800', 
                 padding: '4px 8px', 
                 borderRadius: '4px',
                 fontSize: '12px',
@@ -326,8 +333,13 @@ function App() {
 
       {/* CONTENT */}
       <main style={{ padding: '20px' }}>
+        {/* VISTA ADMINISTRADOR */}
+        {view === 'admin' && (user?.rol === 'admin' || user?.rol === 'administrador') && (
+          <AdminPanel />
+        )}
+
         {/* VISTA SUPERVISOR */}
-        {view === 'supervisor' && (user?.rol === 'supervisor' || user?.rol === 'administrador') && (
+        {view === 'supervisor' && (user?.rol === 'supervisor' || user?.rol === 'admin') && (
           <SupervisorPanel user={user} />
         )}
 

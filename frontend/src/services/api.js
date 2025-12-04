@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://127.0.0.1:3001';
 
 class ApiService {
   constructor() {
@@ -101,7 +101,7 @@ class ApiService {
     });
   }
 
-// PUNTOS QR
+  // PUNTOS QR
   async getPuntos(servicioId = null) {
     const query = servicioId ? `?servicio_id=${servicioId}` : '';
     return this.request(`/puntos/${query}`);
@@ -111,7 +111,7 @@ class ApiService {
     return this.request(`/puntos/${puntoId}`);
   }
 
-  // ALERTAS - NUEVO
+  // ALERTAS
   async getAlertas(servicioId = null) {
     const query = servicioId ? `?servicio_id=${servicioId}` : '';
     return this.request(`/alertas/${query}`);
