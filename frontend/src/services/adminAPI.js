@@ -1,229 +1,256 @@
-const API_URL = 'http://127.0.0.1:3001';
+const API_BASE_URL = 'http://127.0.0.1:3001';
 
-// Helper para obtener token
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
+    'Authorization': `Bearer ${token}`
   };
 };
 
-// Helper para limpiar parámetros (eliminar null, undefined, '')
+// Función para limpiar parámetros null/undefined
 const cleanParams = (params) => {
-  const clean = {};
-  Object.keys(params).forEach(key => {
-    if (params[key] !== null && params[key] !== '' && params[key] !== undefined) {
-      clean[key] = params[key];
+  const cleaned = {};
+  for (const key in params) {
+    if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+      cleaned[key] = params[key];
     }
-  });
-  return clean;
-};
-
-// Helper para manejar respuestas
-const handleResponse = async (response) => {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Error en la solicitud' }));
-    throw new Error(error.detail || `Error ${response.status}`);
   }
-  
-  // Si es 204 No Content, retornar null
-  if (response.status === 204) {
-    return null;
-  }
-  
-  return response.json();
+  return cleaned;
 };
 
 // ============ USUARIOS ============
 export const usuariosAPI = {
-  listar: async (params = {}) => {
-    const cleaned = cleanParams(params);
-    const queryString = new URLSearchParams(cleaned).toString();
-    const url = `${API_URL}/usuarios/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
+  async listar() {
+    const response = await fetch(`${API_BASE_URL}/usuarios`, {
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Error al obtener usuarios');
+    return response.json();
   },
 
-  obtener: async (id) => {
-    const response = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    
-    return handleResponse(response);
-  },
-
-  crear: async (usuario) => {
-    const response = await fetch(`${API_URL}/usuarios/`, {
+  async crear(usuario) {
+    const cleanedData = cleanParams(usuario);
+    const response = await fetch(`${API_BASE_URL}/usuarios`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(usuario)
+      body: JSON.stringify(cleanedData)
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al crear usuario');
+    }
+    return response.json();
   },
 
-  actualizar: async (id, usuario) => {
-    const response = await fetch(`${API_URL}/usuarios/${id}`, {
+  async actualizar(id, usuario) {
+    const cleanedData = cleanParams(usuario);
+    const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify(usuario)
+      body: JSON.stringify(cleanedData)
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al actualizar usuario');
+    }
+    return response.json();
   },
 
-  eliminar: async (id) => {
-    const response = await fetch(`${API_URL}/usuarios/${id}`, {
+  async eliminar(id) {
+    const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al eliminar usuario');
+    }
+    return response.json();
   },
 
-  estadisticas: async () => {
-    const response = await fetch(`${API_URL}/usuarios/estadisticas/resumen`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    
-    return handleResponse(response);
+  async estadisticas() {
+    // Como no existe el endpoint, calculamos las estadísticas del lado del cliente
+    const usuarios = await this.listar();
+    return {
+      total: usuarios.length,
+      total_activos: usuarios.filter(u => u.activo).length,
+      guardias: usuarios.filter(u => u.rol === 'guardia').length,
+      supervisores: usuarios.filter(u => u.rol === 'supervisor').length,
+      administradores: usuarios.filter(u => u.rol === 'admin' || u.rol === 'administrador').length
+    };
   }
 };
 
 // ============ SERVICIOS ============
 export const serviciosAPI = {
-  listar: async (params = {}) => {
-    const cleaned = cleanParams(params);
-    const queryString = new URLSearchParams(cleaned).toString();
-    const url = `${API_URL}/servicios/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
+  async listar() {
+    const response = await fetch(`${API_BASE_URL}/servicios`, {
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Error al obtener servicios');
+    return response.json();
   },
 
-  obtener: async (id) => {
-    const response = await fetch(`${API_URL}/servicios/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    
-    return handleResponse(response);
-  },
-
-  crear: async (servicio) => {
-    const response = await fetch(`${API_URL}/servicios/`, {
+  async crear(servicio) {
+    const cleanedData = cleanParams(servicio);
+    const response = await fetch(`${API_BASE_URL}/servicios`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(servicio)
+      body: JSON.stringify(cleanedData)
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al crear servicio');
+    }
+    return response.json();
   },
 
-  actualizar: async (id, servicio) => {
-    const response = await fetch(`${API_URL}/servicios/${id}`, {
+  async actualizar(id, servicio) {
+    const cleanedData = cleanParams(servicio);
+    const response = await fetch(`${API_BASE_URL}/servicios/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify(servicio)
+      body: JSON.stringify(cleanedData)
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al actualizar servicio');
+    }
+    return response.json();
   },
 
-  eliminar: async (id, permanente = false) => {
-    const url = `${API_URL}/servicios/${id}${permanente ? '?permanente=true' : ''}`;
-    
-    const response = await fetch(url, {
+  async eliminar(id) {
+    const response = await fetch(`${API_BASE_URL}/servicios/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al eliminar servicio');
+    }
+    return response.json();
   },
 
-  estadisticas: async () => {
-    const response = await fetch(`${API_URL}/servicios/estadisticas/resumen`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    
-    return handleResponse(response);
+  async estadisticas() {
+    // Como no existe el endpoint, calculamos las estadísticas del lado del cliente
+    const servicios = await this.listar();
+    return {
+      total: servicios.length,
+      activos: servicios.filter(s => s.activo).length,
+      inactivos: servicios.filter(s => !s.activo).length
+    };
   }
 };
 
-// ============ PUNTOS QR ============
+// ============ PUNTOS QR (ADMIN) ============
 export const puntosAdminAPI = {
-  listar: async (params = {}) => {
-    const cleaned = cleanParams(params);
-    const queryString = new URLSearchParams(cleaned).toString();
-    const url = `${API_URL}/admin/puntos/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
+  async listar() {
+    const response = await fetch(`${API_BASE_URL}/admin/puntos`, {
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Error al obtener puntos QR');
+    return response.json();
   },
 
-  obtener: async (id) => {
-    const response = await fetch(`${API_URL}/admin/puntos/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    
-    return handleResponse(response);
-  },
-
-  crear: async (punto) => {
-    const response = await fetch(`${API_URL}/admin/puntos/`, {
+  async crear(punto) {
+    const cleanedData = cleanParams(punto);
+    const response = await fetch(`${API_BASE_URL}/admin/puntos`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(punto)
+      body: JSON.stringify(cleanedData)
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al crear punto QR');
+    }
+    return response.json();
   },
 
-  actualizar: async (id, punto) => {
-    const response = await fetch(`${API_URL}/admin/puntos/${id}`, {
+  async actualizar(id, punto) {
+    const cleanedData = cleanParams(punto);
+    const response = await fetch(`${API_BASE_URL}/admin/puntos/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify(punto)
+      body: JSON.stringify(cleanedData)
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al actualizar punto QR');
+    }
+    return response.json();
   },
 
-  eliminar: async (id, permanente = false) => {
-    const url = `${API_URL}/admin/puntos/${id}${permanente ? '?permanente=true' : ''}`;
-    
-    const response = await fetch(url, {
+  async eliminar(id) {
+    const response = await fetch(`${API_BASE_URL}/admin/puntos/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al eliminar punto QR');
+    }
+    return response.json();
   },
 
-  estadisticas: async () => {
-    const response = await fetch(`${API_URL}/admin/puntos/estadisticas/resumen`, {
-      method: 'GET',
+  async estadisticas() {
+    // Como no existe el endpoint, calculamos las estadísticas del lado del cliente
+    const puntos = await this.listar();
+    return {
+      total: puntos.length,
+      activos: puntos.filter(p => p.activo).length,
+      inactivos: puntos.filter(p => !p.activo).length
+    };
+  }
+};
+
+// ============ REPORTES ============
+export const reportesAPI = {
+  async getReporteVisitas(queryParams = '') {
+    const response = await fetch(`${API_BASE_URL}/reportes/visitas?${queryParams}`, {
       headers: getAuthHeaders()
     });
-    
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Error al obtener reporte de visitas');
+    return response.json();
+  },
+
+  async getRankingPuntos(queryParams = '') {
+    const response = await fetch(`${API_BASE_URL}/reportes/puntos-ranking?${queryParams}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener ranking de puntos');
+    return response.json();
+  },
+
+  async getReporteAlertas(queryParams = '') {
+    const response = await fetch(`${API_BASE_URL}/reportes/alertas?${queryParams}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener reporte de alertas');
+    return response.json();
+  },
+
+  async exportarExcel(queryParams = '') {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/reportes/exportar-excel?${queryParams}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Error al exportar Excel');
+    return response.blob();
+  },
+
+  async exportarPDF(queryParams = '') {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/reportes/exportar-pdf?${queryParams}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Error al exportar PDF');
+    return response.blob();
   }
 };

@@ -2,14 +2,286 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Recorridas QR</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Título y descripción -->
+    <title>Acrux 360 - Sistema de Recorridas QR</title>
+    <meta name="description" content="Sistema profesional de gestión de recorridas de seguridad con códigos QR y validación GPS en tiempo real" />
+    <meta name="keywords" content="seguridad, recorridas, QR, GPS, vigilancia, Acrux 360" />
+    <meta name="author" content="Marcos Miraballes" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="Acrux 360" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Acrux 360" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#366092" />
+    <meta name="msapplication-TileColor" content="#366092" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png" />
+    
+    <!-- Android Chrome Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png" />
+    
+    <!-- Splash Screens for iOS -->
+    <!-- iPhone X, XS, 11 Pro -->
+    <link rel="apple-touch-startup-image" 
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+          href="/icons/splash/splash-iphonex.png" />
+    
+    <!-- iPhone XR, 11 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
+          href="/icons/splash/splash-iphone11.png" />
+    
+    <!-- iPhone 12, 13 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+          href="/icons/splash/splash-iphone12.png" />
+    
+    <!-- iPhone 12 Pro Max, 13 Pro Max -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)"
+          href="/icons/splash/splash-iphone12promax.png" />
+    
+    <!-- iPad Air -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)"
+          href="/icons/splash/splash-ipadair.png" />
+    
+    <!-- iPad Pro 12.9" -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)"
+          href="/icons/splash/splash-ipadpro.png" />
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Acrux 360 - Sistema de Recorridas QR" />
+    <meta property="og:description" content="Sistema profesional de gestión de recorridas de seguridad" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <meta property="og:url" content="https://acrux360.com" />
+    <meta property="og:site_name" content="Acrux 360" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Acrux 360 - Sistema de Recorridas QR" />
+    <meta name="twitter:description" content="Sistema profesional de gestión de recorridas de seguridad" />
+    <meta name="twitter:image" content="/icons/icon-512x512.png" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
+                   style-src 'self' 'unsafe-inline' https://unpkg.com; 
+                   img-src 'self' data: blob: https:; 
+                   font-src 'self' data:; 
+                   connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https://*.supabase.co;
+                   media-src 'self' blob:;
+                   worker-src 'self' blob:;" />
+    
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="http://127.0.0.1:3001" />
+    <link rel="dns-prefetch" href="http://127.0.0.1:3001" />
+    
+    <style>
+      /* Splash screen mientras carga */
+      #splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #366092 0%, #4a7ab8 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      
+      #splash-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .splash-logo {
+        width: 120px;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      
+      .splash-logo::before {
+        content: "A360";
+        font-size: 32px;
+        font-weight: bold;
+        color: white;
+      }
+      
+      .splash-text {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      
+      .splash-subtext {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+      }
+      
+      .splash-loader {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-top: 30px;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Ocultar contenido hasta que cargue */
+      #root {
+        opacity: 0;
+        transition: opacity 0.5s ease-in;
+      }
+      
+      #root.loaded {
+        opacity: 1;
+      }
+    </style>
   </head>
   <body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+      <div class="splash-logo"></div>
+      <div class="splash-text">ACRUX 360</div>
+      <div class="splash-subtext">Sistema de Recorridas QR</div>
+      <div class="splash-loader"></div>
+    </div>
+    
+    <!-- App Root -->
     <div id="root"></div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      // Ocultar splash screen cuando la app esté lista
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const splash = document.getElementById('splash-screen');
+          const root = document.getElementById('root');
+          if (splash) splash.classList.add('hidden');
+          if (root) root.classList.add('loaded');
+        }, 1000);
+      });
+      
+      // Registrar Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('✅ Service Worker registrado:', registration.scope);
+              
+              // Verificar actualizaciones cada 60 segundos
+              setInterval(() => {
+                registration.update();
+              }, 60000);
+            })
+            .catch(error => {
+              console.error('❌ Error registrando Service Worker:', error);
+            });
+        });
+        
+        // Manejar actualizaciones del SW
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('🔄 Nueva versión disponible. Recargando...');
+          window.location.reload();
+        });
+      }
+      
+      // Prompt de instalación PWA
+      let deferredPrompt;
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Mostrar botón de instalación personalizado si existe
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+          installButton.style.display = 'block';
+          
+          installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              console.log(`Usuario ${outcome === 'accepted' ? 'aceptó' : 'rechazó'} la instalación`);
+              deferredPrompt = null;
+              installButton.style.display = 'none';
+            }
+          });
+        }
+      });
+      
+      // Detectar si ya está instalada
+      window.addEventListener('appinstalled', () => {
+        console.log('✅ PWA instalada exitosamente');
+        deferredPrompt = null;
+      });
+      
+      // Detectar si se está ejecutando como PWA
+      if (window.matchMedia('(display-mode: standalone)').matches || 
+          window.navigator.standalone === true) {
+        console.log('✅ Ejecutando como PWA instalada');
+      }
+    </script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
   </body>
 </html>

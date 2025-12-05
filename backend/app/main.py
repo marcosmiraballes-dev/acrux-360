@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth, qr, visits, puntos, alertas
 from app.routers import usuarios, servicios, qr_generator
 from app.routers import puntos_qr_adapted as puntos_admin
+from app.routers import reportes
 
 app = FastAPI(title="Sistema de Recorridas QR - Acrux 360")
 
@@ -26,6 +27,7 @@ app.include_router(qr.router)
 app.include_router(visits.router)
 app.include_router(puntos.router)
 app.include_router(alertas.router)
+app.include_router(reportes.router)
 
 # Routers nuevos del panel admin
 app.include_router(usuarios.router)

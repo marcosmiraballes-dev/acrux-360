@@ -1,18 +1,131 @@
 {
-  "name": "Sistema de Recorridas QR",
-  "short_name": "Recorridas QR",
-  "description": "Sistema de control de rondas con QR para guardias de seguridad",
+  "name": "Acrux 360 - Sistema de Recorridas QR",
+  "short_name": "Acrux 360",
+  "description": "Sistema de gestión de recorridas de seguridad con códigos QR y validación GPS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1976d2",
+  "theme_color": "#366092",
   "orientation": "portrait",
+  "scope": "/",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Escanear QR",
+      "short_name": "Escanear",
+      "description": "Abrir escáner de códigos QR",
+      "url": "/scanner",
+      "icons": [
+        {
+          "src": "/icons/shortcut-scanner.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Panel Supervisor",
+      "short_name": "Supervisor",
+      "description": "Ver panel de supervisor",
+      "url": "/supervisor",
+      "icons": [
+        {
+          "src": "/icons/shortcut-supervisor.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Administración",
+      "short_name": "Admin",
+      "description": "Panel de administración",
+      "url": "/admin",
+      "icons": [
+        {
+          "src": "/icons/shortcut-admin.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/scanner.png",
+      "type": "image/png",
+      "sizes": "540x720",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/dashboard.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "lang": "es-MX",
+  "dir": "ltr",
+  "iarc_rating_id": "",
+  "features": [
+    "camera",
+    "geolocation"
+  ],
+  "permissions": [
+    "geolocation",
+    "camera"
   ]
 }

@@ -4,6 +4,7 @@ import UsuariosAdmin from './UsuariosAdmin';
 import ServiciosAdmin from './ServiciosAdmin';
 import PuntosAdmin from './PuntosAdmin';
 import GeneradorQR from './GeneradorQR';
+import ReportesAdmin from './ReportesAdmin';
 import './AdminPanel.css';
 
 const AdminPanel = () => {
@@ -182,6 +183,12 @@ const AdminPanel = () => {
           >
             📱 Generar QR
           </button>
+          <button
+            className={activeTab === 'reportes' ? 'active' : ''}
+            onClick={() => setActiveTab('reportes')}
+          >
+            📊 Reportes
+          </button>
         </div>
       </div>
 
@@ -191,6 +198,7 @@ const AdminPanel = () => {
         {activeTab === 'servicios' && <ServiciosAdmin onUpdate={cargarEstadisticas} />}
         {activeTab === 'puntos' && <PuntosAdmin onUpdate={cargarEstadisticas} />}
         {activeTab === 'generador' && <GeneradorQR />}
+        {activeTab === 'reportes' && <ReportesAdmin />}
       </div>
     </div>
   );

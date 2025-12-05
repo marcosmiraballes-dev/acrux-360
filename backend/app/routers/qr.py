@@ -35,15 +35,13 @@ async def validate_qr(
             message="Código QR inválido. Formato esperado: servicio:ID:punto:ID"
         )
     
-    # Verificar que el punto QR existe
-    response = supabase.table("puntos_qr").select(
-        "*, servicios(nombre)"
-    ).eq("id", punto_id).eq("servicio_id", servicio_id).execute()
+    # Verificar que el punto QR existe (SIN JOIN)
+    response = supabase.table("puntos_qr").select("*").eq("id", punto_id).execute()
     
     if not response.data:
         return QRValidationResponse(
             valid=False,
-            message="Punto QR no encontrado o no pertenece al servicio especificado"
+            message="Punto QR no encontrado"
         )
     
     punto_data = response.data[0]
@@ -54,6 +52,15 @@ async def validate_qr(
             valid=False,
             message="Este punto QR está inactivo"
         )
+    
+    # Obtener nombre del servicio (query separada)
+    servicio_nombre = None
+    try:
+        servicio_response = supabase.table("servicios").select("nombre").eq("id", servicio_id).execute()
+        if servicio_response.data:
+            servicio_nombre = servicio_response.data[0].get("nombre")
+    except:
+        pass
     
     # Verificar permisos del usuario según su rol
     if current_user.rol == "guardia" or current_user.rol == "supervisor":
@@ -68,7 +75,7 @@ async def validate_qr(
     return QRValidationResponse(
         valid=True,
         servicio_id=servicio_id,
-        servicio_nombre=punto_data["servicios"]["nombre"],
+        servicio_nombre=servicio_nombre,
         punto_id=punto_id,
         punto_nombre=punto_data["nombre"],
         punto_lat=punto_data["latitud"],
