@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.models import UserResponse
 from app.database import get_supabase_client
 from app.auth import get_current_user
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/alertas", tags=["Alertas"])
 
 class AlertaResponse(BaseModel):
-    punto_id: str
+    punto_id: int  # CORREGIDO: int en lugar de str
     punto_nombre: str
     ultima_visita: datetime | None
     minutos_sin_visitar: int | None
@@ -18,7 +18,7 @@ class AlertaResponse(BaseModel):
 
 @router.get("/", response_model=List[AlertaResponse])
 async def get_alertas(
-    servicio_id: str = None,
+    servicio_id: Optional[int] = None,  # CORREGIDO: int en lugar de str
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
@@ -36,7 +36,7 @@ async def get_alertas(
                 detail="Supervisor sin servicio asignado"
             )
         target_servicio = current_user.servicio_id
-    elif current_user.rol == "administrador":
+    elif current_user.rol in ["administrador", "admin"]:
         target_servicio = servicio_id
     else:
         raise HTTPException(
@@ -118,7 +118,7 @@ async def get_alertas(
 
 @router.get("/count")
 async def get_alertas_count(
-    servicio_id: str = None,
+    servicio_id: Optional[int] = None,  # CORREGIDO: int en lugar de str
     current_user: UserResponse = Depends(get_current_user)
 ):
     """

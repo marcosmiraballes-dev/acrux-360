@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { usuariosAPI } from '../../services/adminAPI';
+import { usuariosAPI, serviciosAPI } from '../../services/adminAPI';
 
 const UsuariosAdmin = ({ onUpdate }) => {
   const [usuarios, setUsuarios] = useState([]);
+  const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -14,22 +15,27 @@ const UsuariosAdmin = ({ onUpdate }) => {
     nombre: '',
     apellido: '',
     rol: 'guardia',
+    servicio_id: '', // OBLIGATORIO
     telefono: '',
     activo: true
   });
 
   useEffect(() => {
-    cargarUsuarios();
+    cargarDatos();
   }, [filtros]);
 
-  const cargarUsuarios = async () => {
+  const cargarDatos = async () => {
     try {
       setLoading(true);
-      const data = await usuariosAPI.listar(filtros);
-      setUsuarios(data);
+      const [usuariosData, serviciosData] = await Promise.all([
+        usuariosAPI.listar(filtros),
+        serviciosAPI.listar({ activo: true })
+      ]);
+      setUsuarios(usuariosData);
+      setServicios(serviciosData);
     } catch (error) {
-      console.error('Error cargando usuarios:', error);
-      alert('Error al cargar usuarios');
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar datos');
     } finally {
       setLoading(false);
     }
@@ -37,6 +43,13 @@ const UsuariosAdmin = ({ onUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validar que se seleccionó un servicio
+    if (!formData.servicio_id) {
+      alert('Debe seleccionar un servicio');
+      return;
+    }
+    
     try {
       if (editingUser) {
         // Actualizar
@@ -46,12 +59,15 @@ const UsuariosAdmin = ({ onUpdate }) => {
         alert('Usuario actualizado correctamente');
       } else {
         // Crear
-        await usuariosAPI.crear(formData);
+        await usuariosAPI.crear({
+          ...formData,
+          servicio_id: parseInt(formData.servicio_id) // Convertir a número
+        });
         alert('Usuario creado correctamente');
       }
       
       resetForm();
-      cargarUsuarios();
+      cargarDatos();
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Error guardando usuario:', error);
@@ -67,6 +83,7 @@ const UsuariosAdmin = ({ onUpdate }) => {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       rol: usuario.rol,
+      servicio_id: usuario.servicio_id || '',
       telefono: usuario.telefono || '',
       activo: usuario.activo
     });
@@ -79,7 +96,7 @@ const UsuariosAdmin = ({ onUpdate }) => {
     try {
       await usuariosAPI.eliminar(usuario.id);
       alert('Usuario eliminado correctamente');
-      cargarUsuarios();
+      cargarDatos();
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Error eliminando usuario:', error);
@@ -94,6 +111,7 @@ const UsuariosAdmin = ({ onUpdate }) => {
       nombre: '',
       apellido: '',
       rol: 'guardia',
+      servicio_id: '',
       telefono: '',
       activo: true
     });
@@ -104,11 +122,18 @@ const UsuariosAdmin = ({ onUpdate }) => {
   const getRolBadge = (rol) => {
     const badges = {
       admin: { emoji: '⚙️', class: 'rol-admin' },
+      administrador: { emoji: '⚙️', class: 'rol-admin' },
       supervisor: { emoji: '👁️', class: 'rol-supervisor' },
       guardia: { emoji: '👮', class: 'rol-guardia' }
     };
     const badge = badges[rol] || badges.guardia;
     return <span className={`rol-badge ${badge.class}`}>{badge.emoji} {rol}</span>;
+  };
+
+  const getServicioNombre = (servicioId) => {
+    if (!servicioId) return '-';
+    const servicio = servicios.find(s => s.id === servicioId);
+    return servicio ? servicio.nombre : `ID: ${servicioId}`;
   };
 
   return (
@@ -213,14 +238,35 @@ const UsuariosAdmin = ({ onUpdate }) => {
             </div>
 
             <div className="form-group">
-              <label>Teléfono</label>
-              <input
-                type="tel"
-                value={formData.telefono}
-                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                placeholder="Opcional"
-              />
+              <label>Servicio * <span style={{color: '#e74c3c', fontSize: '0.9em'}}>(obligatorio)</span></label>
+              <select
+                required
+                value={formData.servicio_id}
+                onChange={(e) => setFormData({ ...formData, servicio_id: e.target.value })}
+              >
+                <option value="">Seleccione un servicio</option>
+                {servicios.map(servicio => (
+                  <option key={servicio.id} value={servicio.id}>
+                    {servicio.nombre}
+                  </option>
+                ))}
+              </select>
+              {servicios.length === 0 && (
+                <small style={{color: '#e74c3c'}}>
+                  ⚠️ Debe crear al menos un servicio primero
+                </small>
+              )}
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>Teléfono</label>
+            <input
+              type="tel"
+              value={formData.telefono}
+              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              placeholder="Opcional"
+            />
           </div>
 
           <div className="form-group">
@@ -235,7 +281,11 @@ const UsuariosAdmin = ({ onUpdate }) => {
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn-primary">
+            <button 
+              type="submit" 
+              className="btn-primary"
+              disabled={servicios.length === 0}
+            >
               {editingUser ? '💾 Actualizar' : '➕ Crear'}
             </button>
             <button type="button" className="btn-secondary" onClick={resetForm}>
@@ -256,6 +306,7 @@ const UsuariosAdmin = ({ onUpdate }) => {
                 <th>Nombre</th>
                 <th>Email</th>
                 <th>Rol</th>
+                <th>Servicio</th>
                 <th>Teléfono</th>
                 <th>Estado</th>
                 <th>Acciones</th>
@@ -267,6 +318,7 @@ const UsuariosAdmin = ({ onUpdate }) => {
                   <td>{usuario.nombre} {usuario.apellido}</td>
                   <td>{usuario.email}</td>
                   <td>{getRolBadge(usuario.rol)}</td>
+                  <td>{getServicioNombre(usuario.servicio_id)}</td>
                   <td>{usuario.telefono || '-'}</td>
                   <td>
                     <span className={`status-badge ${usuario.activo ? 'activo' : 'inactivo'}`}>

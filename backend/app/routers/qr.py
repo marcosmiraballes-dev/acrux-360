@@ -27,8 +27,8 @@ async def validate_qr(
         if len(parts) != 4 or parts[0] != "servicio" or parts[2] != "punto":
             raise ValueError("Formato inválido")
         
-        servicio_id = parts[1]
-        punto_id = parts[3]
+        servicio_id = int(parts[1])  # CORREGIDO: convertir a int
+        punto_id = int(parts[3])     # CORREGIDO: convertir a int
     except Exception:
         return QRValidationResponse(
             valid=False,

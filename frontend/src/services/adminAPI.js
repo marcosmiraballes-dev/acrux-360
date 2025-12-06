@@ -1,14 +1,17 @@
 const API_BASE_URL = 'http://127.0.0.1:3001';
 
+// CORREGIDO: Función que obtiene el token en el momento de la llamada
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+  const headers = {
+    'Content-Type': 'application/json'
   };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
 };
 
-// Función para limpiar parámetros null/undefined
 const cleanParams = (params) => {
   const cleaned = {};
   for (const key in params) {
@@ -21,8 +24,12 @@ const cleanParams = (params) => {
 
 // ============ USUARIOS ============
 export const usuariosAPI = {
-  async listar() {
-    const response = await fetch(`${API_BASE_URL}/usuarios`, {
+  async listar(params = {}) {
+    const cleanedParams = cleanParams(params);
+    const queryString = new URLSearchParams(cleanedParams).toString();
+    const url = queryString ? `${API_BASE_URL}/usuarios/?${queryString}` : `${API_BASE_URL}/usuarios/`;
+    
+    const response = await fetch(url, {
       headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Error al obtener usuarios');
@@ -31,7 +38,7 @@ export const usuariosAPI = {
 
   async crear(usuario) {
     const cleanedData = cleanParams(usuario);
-    const response = await fetch(`${API_BASE_URL}/usuarios`, {
+    const response = await fetch(`${API_BASE_URL}/usuarios/`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(cleanedData)
@@ -70,7 +77,6 @@ export const usuariosAPI = {
   },
 
   async estadisticas() {
-    // Como no existe el endpoint, calculamos las estadísticas del lado del cliente
     const usuarios = await this.listar();
     return {
       total: usuarios.length,
@@ -84,8 +90,12 @@ export const usuariosAPI = {
 
 // ============ SERVICIOS ============
 export const serviciosAPI = {
-  async listar() {
-    const response = await fetch(`${API_BASE_URL}/servicios`, {
+  async listar(params = {}) {
+    const cleanedParams = cleanParams(params);
+    const queryString = new URLSearchParams(cleanedParams).toString();
+    const url = queryString ? `${API_BASE_URL}/servicios/?${queryString}` : `${API_BASE_URL}/servicios/`;
+    
+    const response = await fetch(url, {
       headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Error al obtener servicios');
@@ -94,7 +104,7 @@ export const serviciosAPI = {
 
   async crear(servicio) {
     const cleanedData = cleanParams(servicio);
-    const response = await fetch(`${API_BASE_URL}/servicios`, {
+    const response = await fetch(`${API_BASE_URL}/servicios/`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(cleanedData)
@@ -133,7 +143,6 @@ export const serviciosAPI = {
   },
 
   async estadisticas() {
-    // Como no existe el endpoint, calculamos las estadísticas del lado del cliente
     const servicios = await this.listar();
     return {
       total: servicios.length,
@@ -145,8 +154,12 @@ export const serviciosAPI = {
 
 // ============ PUNTOS QR (ADMIN) ============
 export const puntosAdminAPI = {
-  async listar() {
-    const response = await fetch(`${API_BASE_URL}/admin/puntos`, {
+  async listar(params = {}) {
+    const cleanedParams = cleanParams(params);
+    const queryString = new URLSearchParams(cleanedParams).toString();
+    const url = queryString ? `${API_BASE_URL}/admin/puntos/?${queryString}` : `${API_BASE_URL}/admin/puntos/`;
+    
+    const response = await fetch(url, {
       headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Error al obtener puntos QR');
@@ -155,7 +168,7 @@ export const puntosAdminAPI = {
 
   async crear(punto) {
     const cleanedData = cleanParams(punto);
-    const response = await fetch(`${API_BASE_URL}/admin/puntos`, {
+    const response = await fetch(`${API_BASE_URL}/admin/puntos/`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(cleanedData)
@@ -194,7 +207,6 @@ export const puntosAdminAPI = {
   },
 
   async estadisticas() {
-    // Como no existe el endpoint, calculamos las estadísticas del lado del cliente
     const puntos = await this.listar();
     return {
       total: puntos.length,
@@ -231,24 +243,18 @@ export const reportesAPI = {
   },
 
   async exportarExcel(queryParams = '') {
-    const token = localStorage.getItem('token');
     const response = await fetch(`${API_BASE_URL}/reportes/exportar-excel?${queryParams}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Error al exportar Excel');
     return response.blob();
   },
 
   async exportarPDF(queryParams = '') {
-    const token = localStorage.getItem('token');
     const response = await fetch(`${API_BASE_URL}/reportes/exportar-pdf?${queryParams}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Error al exportar PDF');
     return response.blob();

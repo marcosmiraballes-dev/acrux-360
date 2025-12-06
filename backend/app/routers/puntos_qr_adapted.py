@@ -4,18 +4,18 @@ from pydantic import BaseModel
 from datetime import datetime
 from app.auth import get_current_user
 from app.database import get_supabase
-import uuid
 import secrets
 
 router = APIRouter(prefix="/puntos", tags=["puntos"])
 
-# Schemas adaptados a la estructura actual
+# Schemas adaptados a servicio_id INTEGER
 class PuntoCreate(BaseModel):
     nombre: str
     descripcion: Optional[str] = None
     latitud: float
     longitud: float
-    servicio_id: str  # UUID como string
+    servicio_id: int  # INTEGER
+    radio_validacion: int = 50
     activo: bool = True
 
 class PuntoUpdate(BaseModel):
@@ -23,31 +23,35 @@ class PuntoUpdate(BaseModel):
     descripcion: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
-    servicio_id: Optional[str] = None
+    servicio_id: Optional[int] = None  # INTEGER
+    radio_validacion: Optional[int] = None
     activo: Optional[bool] = None
 
 class PuntoResponse(BaseModel):
-    id: str  # UUID
+    id: int  # INTEGER
     qr_code: str
     nombre: str
     descripcion: Optional[str]
     latitud: float
     longitud: float
-    servicio_id: str
+    servicio_id: int  # INTEGER
+    radio_validacion: int
     activo: bool
     created_at: datetime
     updated_at: Optional[datetime]
 
 class PuntoConServicio(BaseModel):
-    id: str
+    id: int  # INTEGER
     qr_code: str
+    codigo_qr: str  # Alias
     nombre: str
     descripcion: Optional[str]
     latitud: float
     longitud: float
-    servicio_id: str
-    activo: bool
+    servicio_id: int  # INTEGER
     servicio_nombre: Optional[str]
+    radio_validacion: int
+    activo: bool
     created_at: datetime
 
 # Dependency para admin
@@ -63,7 +67,7 @@ def require_admin(current_user = Depends(get_current_user)):
 @router.get("/", response_model=List[PuntoConServicio])
 async def listar_puntos(
     activo: Optional[bool] = None,
-    servicio_id: Optional[str] = None,
+    servicio_id: Optional[int] = None,  # INTEGER
     current_user = Depends(get_current_user)
 ):
     supabase = get_supabase()
@@ -92,6 +96,7 @@ async def listar_puntos(
         
         puntos.append({
             **punto,
+            "codigo_qr": punto.get("qr_code", ""),  # Agregar alias
             "servicio_nombre": servicio_nombre
         })
     
@@ -100,7 +105,7 @@ async def listar_puntos(
 # GET - Obtener punto por ID
 @router.get("/{punto_id}", response_model=PuntoResponse)
 async def obtener_punto(
-    punto_id: str,
+    punto_id: int,  # INTEGER
     current_user = Depends(get_current_user)
 ):
     supabase = get_supabase()
@@ -142,6 +147,13 @@ async def crear_punto(
             detail="Longitud debe estar entre -180 y 180"
         )
     
+    # Validar radio
+    if punto.radio_validacion < 10 or punto.radio_validacion > 500:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Radio de validación debe estar entre 10 y 500 metros"
+        )
+    
     # Generar código QR único
     qr_code = f"ACRUX-{secrets.token_hex(6).upper()}"
     
@@ -151,14 +163,15 @@ async def crear_punto(
         qr_code = f"ACRUX-{secrets.token_hex(6).upper()}"
         existing = supabase.table("puntos_qr").select("id").eq("qr_code", qr_code).execute()
     
+    # Crear punto (sin id, será auto-generado por SERIAL)
     nuevo_punto = {
-        "id": str(uuid.uuid4()),
         "qr_code": qr_code,
         "nombre": punto.nombre,
         "descripcion": punto.descripcion,
         "latitud": float(punto.latitud),
         "longitud": float(punto.longitud),
-        "servicio_id": punto.servicio_id,
+        "servicio_id": punto.servicio_id,  # INTEGER
+        "radio_validacion": punto.radio_validacion,
         "activo": punto.activo,
         "created_at": datetime.utcnow().isoformat(),
         "updated_at": datetime.utcnow().isoformat()
@@ -170,7 +183,7 @@ async def crear_punto(
 # PUT - Actualizar punto QR
 @router.put("/{punto_id}", response_model=PuntoResponse)
 async def actualizar_punto(
-    punto_id: str,
+    punto_id: int,  # INTEGER
     punto_update: PuntoUpdate,
     current_user = Depends(require_admin)
 ):
@@ -218,6 +231,14 @@ async def actualizar_punto(
             )
         update_data["servicio_id"] = punto_update.servicio_id
     
+    if punto_update.radio_validacion:
+        if punto_update.radio_validacion < 10 or punto_update.radio_validacion > 500:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Radio inválido"
+            )
+        update_data["radio_validacion"] = punto_update.radio_validacion
+    
     if punto_update.activo is not None:
         update_data["activo"] = punto_update.activo
     
@@ -229,7 +250,7 @@ async def actualizar_punto(
 # DELETE - Eliminar punto QR
 @router.delete("/{punto_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def eliminar_punto(
-    punto_id: str,
+    punto_id: int,  # INTEGER
     permanente: bool = False,
     current_user = Depends(require_admin)
 ):

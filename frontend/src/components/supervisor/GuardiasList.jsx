@@ -1,48 +1,51 @@
 import { useState, useEffect } from 'react';
+import api from '../../services/api';
 
 function GuardiasList({ servicioId, visitas }) {
   const [guardias, setGuardias] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (visitas && visitas.length > 0) {
-      // Extraer guardias únicos de las visitas
-      const guardiasMap = new Map();
-      
-      visitas.forEach(visita => {
-        if (!guardiasMap.has(visita.guardia_id)) {
-          guardiasMap.set(visita.guardia_id, {
-            id: visita.guardia_id,
-            visitas: []
-          });
-        }
-        guardiasMap.get(visita.guardia_id).visitas.push(visita);
-      });
+    loadGuardias();
+  }, [servicioId]);
 
-      // Convertir a array y agregar estadísticas
-      const guardiasData = Array.from(guardiasMap.values()).map(guardia => {
-        const sortedVisits = guardia.visitas.sort((a, b) => 
+  const loadGuardias = async () => {
+    try {
+      setLoading(true);
+      // Obtener guardias del servicio desde el backend
+      const guardiasData = await api.getGuardias(servicioId);
+      
+      // Agregar estadísticas de visitas a cada guardia
+      const guardiasConEstadisticas = guardiasData.map(guardia => {
+        const visitasGuardia = visitas.filter(v => v.guardia_id === guardia.id);
+        
+        const sortedVisits = visitasGuardia.sort((a, b) => 
           new Date(b.fecha_hora) - new Date(a.fecha_hora)
         );
         
         const lastVisit = sortedVisits[0];
         const today = new Date().toDateString();
-        const todayVisits = guardia.visitas.filter(v => 
+        const todayVisits = visitasGuardia.filter(v => 
           new Date(v.fecha_hora).toDateString() === today
         ).length;
 
         return {
-          id: guardia.id,
-          totalVisitas: guardia.visitas.length,
+          ...guardia,
+          totalVisitas: visitasGuardia.length,
           visitasHoy: todayVisits,
-          ultimaVisita: lastVisit.fecha_hora,
-          ultimoPunto: lastVisit.punto_qr_id,
-          activo: isActive(lastVisit.fecha_hora)
+          ultimaVisita: lastVisit?.fecha_hora,
+          ultimoPunto: lastVisit?.punto_qr_id,
+          activo: lastVisit ? isActive(lastVisit.fecha_hora) : false
         };
       });
 
-      setGuardias(guardiasData);
+      setGuardias(guardiasConEstadisticas);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error cargando guardias:', error);
+      setLoading(false);
     }
-  }, [visitas]);
+  };
 
   const isActive = (lastVisitDate) => {
     const now = new Date();
@@ -51,9 +54,17 @@ function GuardiasList({ servicioId, visitas }) {
     return diffMinutes < 120; // Activo si visitó en las últimas 2 horas
   };
 
+  if (loading) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <p>⏳ Cargando guardias...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '20px' }}>
-      <h2>👥 Guardias Activos</h2>
+      <h2>👥 Guardias del Servicio</h2>
 
       {guardias.length === 0 ? (
         <div style={{ 
@@ -64,7 +75,7 @@ function GuardiasList({ servicioId, visitas }) {
           color: '#757575'
         }}>
           <p style={{ fontSize: '48px' }}>👤</p>
-          <p>No hay guardias registrados</p>
+          <p>No hay guardias asignados a este servicio</p>
         </div>
       ) : (
         <div style={{ 
@@ -72,7 +83,7 @@ function GuardiasList({ servicioId, visitas }) {
           gap: '15px',
           gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))'
         }}>
-          {guardias.map((guardia, index) => (
+          {guardias.map((guardia) => (
             <div
               key={guardia.id}
               style={{
@@ -98,8 +109,11 @@ function GuardiasList({ servicioId, visitas }) {
 
               <div style={{ marginBottom: '15px' }}>
                 <h3 style={{ margin: '0 0 5px 0' }}>
-                  👤 Guardia #{index + 1}
+                  👤 {guardia.nombre}
                 </h3>
+                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#666' }}>
+                  {guardia.email}
+                </p>
                 <span style={{
                   fontSize: '12px',
                   padding: '2px 8px',
@@ -141,12 +155,20 @@ function GuardiasList({ servicioId, visitas }) {
                 </div>
               </div>
 
-              <div style={{ fontSize: '13px', color: '#666' }}>
-                <p style={{ margin: '5px 0' }}>
-                  <strong>🕐 Última visita:</strong><br/>
-                  {new Date(guardia.ultimaVisita).toLocaleString('es-MX')}
-                </p>
-              </div>
+              {guardia.ultimaVisita && (
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  <p style={{ margin: '5px 0' }}>
+                    <strong>🕐 Última visita:</strong><br/>
+                    {new Date(guardia.ultimaVisita).toLocaleString('es-MX')}
+                  </p>
+                </div>
+              )}
+
+              {guardia.telefono && (
+                <div style={{ fontSize: '13px', color: '#666', marginTop: '10px' }}>
+                  <strong>📞</strong> {guardia.telefono}
+                </div>
+              )}
             </div>
           ))}
         </div>

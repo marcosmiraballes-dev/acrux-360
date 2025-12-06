@@ -1,15 +1,15 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from app.models import UserResponse
 from app.database import get_supabase_client
-from app.auth import get_current_user, require_role
-from typing import List
+from app.auth import get_current_user
+from typing import List, Optional
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/puntos", tags=["Puntos QR"])
 
 class PuntoQRResponse(BaseModel):
-    id: str
-    servicio_id: str
+    id: int  # CORREGIDO: int
+    servicio_id: int  # CORREGIDO: int
     nombre: str
     descripcion: str | None
     latitud: float
@@ -19,7 +19,7 @@ class PuntoQRResponse(BaseModel):
 
 @router.get("/", response_model=List[PuntoQRResponse])
 async def get_puntos(
-    servicio_id: str = None,
+    servicio_id: Optional[int] = None,  # CORREGIDO: int
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
@@ -39,7 +39,7 @@ async def get_puntos(
                 detail="Usuario sin servicio asignado"
             )
         query = query.eq("servicio_id", current_user.servicio_id)
-    elif current_user.rol == "administrador" and servicio_id:
+    elif current_user.rol in ["administrador", "admin"] and servicio_id:
         query = query.eq("servicio_id", servicio_id)
     
     # Solo puntos activos
@@ -64,7 +64,7 @@ async def get_puntos(
 
 @router.get("/{punto_id}", response_model=PuntoQRResponse)
 async def get_punto(
-    punto_id: str,
+    punto_id: int,  # CORREGIDO: int
     current_user: UserResponse = Depends(get_current_user)
 ):
     """

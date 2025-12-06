@@ -68,6 +68,8 @@ const PuntosAdmin = ({ onUpdate }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    console.log('=== DATOS A ENVIAR ===', formData);
+
     try {
       if (editingPunto) {
         await puntosAdminAPI.actualizar(editingPunto.id, formData);

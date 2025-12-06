@@ -55,11 +55,21 @@ async def get_current_user(
     token = credentials.credentials
     payload = decode_token(token)
     
-    user_id: str = payload.get("sub")
+    # CORREGIDO: user_id ahora se maneja como int
+    user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No se pudo validar las credenciales",
+        )
+    
+    # Convertir a int (era str antes)
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="ID de usuario inválido en token",
         )
     
     # Obtener usuario de Supabase SIN JOIN
@@ -73,6 +83,13 @@ async def get_current_user(
         )
     
     user_data = response.data[0]
+    
+    # Verificar que el usuario esté activo
+    if not user_data.get("activo", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario inactivo"
+        )
     
     # Obtener nombre del servicio si existe servicio_id
     servicio_nombre = None

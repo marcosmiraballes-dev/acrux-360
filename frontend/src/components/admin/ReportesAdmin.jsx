@@ -12,7 +12,7 @@ const ReportesAdmin = () => {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [usuarioId, setUsuarioId] = useState('');
-  const [servicioId, setServicioId] = useState('');
+  const [servicioId, setServicioId] = useState(''); // OBLIGATORIO
   const [puntoQrId, setPuntoQrId] = useState('');
 
   // Datos
@@ -46,6 +46,12 @@ const ReportesAdmin = () => {
   };
 
   const generarReporte = async () => {
+    // Validar que se seleccionó un servicio
+    if (!servicioId) {
+      setError('Debe seleccionar un servicio');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -55,7 +61,7 @@ const ReportesAdmin = () => {
       if (fechaInicio) params.append('fecha_inicio', fechaInicio + 'T00:00:00Z');
       if (fechaFin) params.append('fecha_fin', fechaFin + 'T23:59:59Z');
       if (usuarioId) params.append('usuario_id', usuarioId);
-      if (servicioId) params.append('servicio_id', servicioId);
+      if (servicioId) params.append('servicio_id', servicioId); // OBLIGATORIO
       if (puntoQrId) params.append('punto_qr_id', puntoQrId);
 
       let data;
@@ -77,6 +83,11 @@ const ReportesAdmin = () => {
   };
 
   const exportarExcel = async () => {
+    if (!servicioId) {
+      setError('Debe seleccionar un servicio');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -84,6 +95,7 @@ const ReportesAdmin = () => {
       const params = new URLSearchParams();
       if (fechaInicio) params.append('fecha_inicio', fechaInicio + 'T00:00:00Z');
       if (fechaFin) params.append('fecha_fin', fechaFin + 'T23:59:59Z');
+      if (servicioId) params.append('servicio_id', servicioId);
       params.append('tipo', tipoReporte);
       params.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -108,6 +120,11 @@ const ReportesAdmin = () => {
   };
 
   const exportarPDF = async () => {
+    if (!servicioId) {
+      setError('Debe seleccionar un servicio');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -115,6 +132,7 @@ const ReportesAdmin = () => {
       const params = new URLSearchParams();
       if (fechaInicio) params.append('fecha_inicio', fechaInicio + 'T00:00:00Z');
       if (fechaFin) params.append('fecha_fin', fechaFin + 'T23:59:59Z');
+      if (servicioId) params.append('servicio_id', servicioId);
       params.append('tipo', tipoReporte);
       params.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -149,6 +167,13 @@ const ReportesAdmin = () => {
     setReporteData(null);
   };
 
+  const formatearFechaHora = (fechaISO) => {
+    const fecha = new Date(fechaISO);
+    const fechaStr = fecha.toLocaleDateString('es-MX');
+    const horaStr = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    return { fecha: fechaStr, hora: horaStr };
+  };
+
   return (
     <div className="reportes-admin">
       <h2>📊 Reportes y Estadísticas</h2>
@@ -171,6 +196,23 @@ const ReportesAdmin = () => {
               <option value="visitas">Visitas</option>
               <option value="ranking">Ranking de Puntos</option>
               <option value="alertas">Alertas</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Servicio * <span style={{color: '#e74c3c', fontSize: '0.9em'}}>(obligatorio)</span></label>
+            <select
+              value={servicioId}
+              onChange={(e) => setServicioId(e.target.value)}
+              className="form-control"
+              required
+            >
+              <option value="">Seleccione un servicio</option>
+              {servicios.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -234,21 +276,21 @@ const ReportesAdmin = () => {
         <div className="button-group">
           <button 
             onClick={generarReporte} 
-            disabled={loading}
+            disabled={loading || !servicioId}
             className="btn btn-primary"
           >
             {loading ? 'Generando...' : '📊 Ver Reporte'}
           </button>
           <button 
             onClick={exportarExcel} 
-            disabled={loading}
+            disabled={loading || !servicioId}
             className="btn btn-success"
           >
             📑 Exportar Excel
           </button>
           <button 
             onClick={exportarPDF} 
-            disabled={loading}
+            disabled={loading || !servicioId}
             className="btn btn-danger"
           >
             📄 Exportar PDF
@@ -306,34 +348,41 @@ const ReportesAdmin = () => {
             </div>
           )}
 
-          {/* Tabla de Visitas */}
+          {/* Tabla de Visitas - FORMATO ACTUALIZADO */}
           {tipoReporte === 'visitas' && reporteData.visitas && (
             <div className="table-container">
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Fecha/Hora</th>
-                    <th>Usuario</th>
-                    <th>Punto QR</th>
-                    <th>Código</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Punto Visitado</th>
+                    <th>Guardia</th>
+                    <th>Estatus</th>
                     <th>Observaciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reporteData.visitas.slice(0, 50).map((visita, idx) => (
-                    <tr key={idx}>
-                      <td>{new Date(visita.created_at).toLocaleString('es-MX')}</td>
-                      <td>{visita.usuario_nombre || 'Desconocido'}</td>
-                      <td>{visita.punto_nombre || 'Desconocido'}</td>
-                      <td><code>{visita.punto_codigo || 'N/A'}</code></td>
-                      <td>{visita.observaciones || '-'}</td>
-                    </tr>
-                  ))}
+                  {reporteData.visitas.slice(0, 100).map((visita, idx) => {
+                    const { fecha, hora } = formatearFechaHora(visita.created_at);
+                    return (
+                      <tr key={idx}>
+                        <td>{fecha}</td>
+                        <td>{hora}</td>
+                        <td>{visita.punto_nombre || 'Desconocido'}</td>
+                        <td>{visita.usuario_nombre || 'Desconocido'}</td>
+                        <td>
+                          <span className="badge badge-success">✓ Visitado</span>
+                        </td>
+                        <td>{visita.observaciones || '-'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
-              {reporteData.visitas.length > 50 && (
+              {reporteData.visitas.length > 100 && (
                 <p className="table-note">
-                  Mostrando 50 de {reporteData.visitas.length} visitas. 
+                  Mostrando 100 de {reporteData.visitas.length} visitas. 
                   Exporta a Excel o PDF para ver todos los resultados.
                 </p>
               )}
@@ -487,6 +536,33 @@ const ReportesAdmin = () => {
           border-radius: 3px;
           font-family: monospace;
           font-size: 0.9em;
+        }
+
+        .badge {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.85em;
+          font-weight: 500;
+        }
+
+        .badge-success {
+          background: #28a745;
+          color: white;
+        }
+
+        .badge-warning {
+          background: #ffc107;
+          color: #000;
+        }
+
+        .badge-info {
+          background: #17a2b8;
+          color: white;
+        }
+
+        .badge-primary {
+          background: #007bff;
+          color: white;
         }
       `}</style>
     </div>

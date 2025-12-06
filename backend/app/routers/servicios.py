@@ -99,19 +99,29 @@ async def crear_servicio(
     
     # Validar formato de horas
     try:
-        time.fromisoformat(servicio.hora_inicio)
-        time.fromisoformat(servicio.hora_fin)
+        hora_inicio_obj = time.fromisoformat(servicio.hora_inicio)
+        hora_fin_obj = time.fromisoformat(servicio.hora_fin)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Formato de hora inválido. Usar HH:MM"
         )
     
+    # PERMITIR servicios nocturnos (hora_inicio > hora_fin)
+    # Ejemplo: 22:00 a 06:00 es válido para servicios nocturnos
+    # No validamos que hora_fin > hora_inicio
+    
     # Validar días
     if not all(0 <= dia <= 6 for dia in servicio.dias_activo):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Días inválidos. Deben estar entre 0 (Lunes) y 6 (Domingo)"
+        )
+    
+    if len(servicio.dias_activo) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debe seleccionar al menos un día activo"
         )
     
     # Validar intervalo
@@ -195,11 +205,18 @@ async def actualizar_servicio(
                 detail="Formato de hora_fin inválido"
             )
     
+    # PERMITIR servicios nocturnos - no validar hora_fin > hora_inicio
+    
     if servicio_update.dias_activo is not None:
         if not all(0 <= dia <= 6 for dia in servicio_update.dias_activo):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Días inválidos"
+            )
+        if len(servicio_update.dias_activo) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Debe seleccionar al menos un día activo"
             )
         update_data["dias_activo"] = servicio_update.dias_activo
     

@@ -15,10 +15,18 @@ class ApiService {
     localStorage.removeItem('token');
   }
 
+  // CORREGIDO: Obtener token siempre desde localStorage en cada request
+  getToken() {
+    return localStorage.getItem('token');
+  }
+
   async request(endpoint, options = {}) {
+    // CORREGIDO: Usar getToken() en lugar de this.token
+    const token = this.getToken();
+    
     const headers = {
       'Content-Type': 'application/json',
-      ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     };
 
@@ -32,7 +40,7 @@ class ApiService {
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Error en la petición');
+        throw new Error(JSON.stringify(error.detail) || 'Error en la petición');
       }
 
       return await response.json();
@@ -120,6 +128,12 @@ class ApiService {
   async getAlertasCount(servicioId = null) {
     const query = servicioId ? `?servicio_id=${servicioId}` : '';
     return this.request(`/alertas/count${query}`);
+  }
+
+  // GUARDIAS
+  async getGuardias(servicioId = null) {
+    const query = servicioId ? `?servicio_id=${servicioId}` : '';
+    return this.request(`/usuarios/guardias${query}`);
   }
 }
 

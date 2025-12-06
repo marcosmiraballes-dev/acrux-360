@@ -44,12 +44,13 @@ async def obtener_reporte_visitas(
     fecha_inicio: Optional[str] = Query(None),
     fecha_fin: Optional[str] = Query(None),
     usuario_id: Optional[str] = Query(None),
-    servicio_id: Optional[int] = Query(None),
+    servicio_id: Optional[int] = Query(None),  # OBLIGATORIO desde frontend
     punto_qr_id: Optional[str] = Query(None),
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
-    Obtiene reporte de visitas con filtros opcionales
+    Obtiene reporte de visitas con filtros opcionales.
+    servicio_id es obligatorio desde el frontend.
     """
     verificar_admin(current_user)
     
@@ -77,6 +78,15 @@ async def obtener_reporte_visitas(
         
         response = query.execute()
         visitas = response.data
+        
+        # ⭐ FILTRAR POR SERVICIO_ID (desde puntos_qr) ⭐
+        if servicio_id:
+            # Obtener puntos del servicio
+            puntos_resp = supabase.table("puntos_qr").select("id").eq("servicio_id", servicio_id).execute()
+            puntos_ids = [p["id"] for p in puntos_resp.data]
+            
+            # Filtrar visitas que pertenecen a esos puntos
+            visitas = [v for v in visitas if v.get("punto_qr_id") in puntos_ids]
         
         # Enriquecer datos con nombres (queries separadas)
         usuarios_cache = {}
@@ -133,6 +143,7 @@ async def obtener_reporte_visitas(
 async def obtener_ranking_puntos(
     fecha_inicio: Optional[str] = Query(None),
     fecha_fin: Optional[str] = Query(None),
+    servicio_id: Optional[int] = Query(None),
     limit: int = Query(10, ge=1, le=100),
     current_user: UserResponse = Depends(get_current_user)
 ):
@@ -157,6 +168,12 @@ async def obtener_ranking_puntos(
         
         response = query.execute()
         visitas = response.data
+        
+        # ⭐ FILTRAR POR SERVICIO_ID ⭐
+        if servicio_id:
+            puntos_resp = supabase.table("puntos_qr").select("id").eq("servicio_id", servicio_id).execute()
+            puntos_ids = [p["id"] for p in puntos_resp.data]
+            visitas = [v for v in visitas if v.get("punto_qr_id") in puntos_ids]
         
         # Contar visitas por punto
         contador = {}
@@ -257,6 +274,7 @@ async def obtener_reporte_alertas(
 async def exportar_excel(
     fecha_inicio: Optional[str] = Query(None),
     fecha_fin: Optional[str] = Query(None),
+    servicio_id: Optional[int] = Query(None),
     tipo: str = Query("visitas", regex="^(visitas|ranking|alertas)$"),
     timezone: str = Query("UTC"),
     current_user: UserResponse = Depends(get_current_user)
@@ -304,6 +322,12 @@ async def exportar_excel(
             response = query.execute()
             visitas = response.data
             
+            # ⭐ FILTRAR POR SERVICIO_ID ⭐
+            if servicio_id:
+                puntos_resp = supabase.table("puntos_qr").select("id").eq("servicio_id", servicio_id).execute()
+                puntos_ids = [p["id"] for p in puntos_resp.data]
+                visitas = [v for v in visitas if v.get("punto_qr_id") in puntos_ids]
+            
             # Título y metadatos
             ws.title = "Reporte de Visitas"
             ws['A1'] = "REPORTE DE VISITAS - ACRUX 360"
@@ -318,8 +342,8 @@ async def exportar_excel(
             if fecha_inicio or fecha_fin:
                 ws['A3'] = f"Período: {fecha_inicio or 'Inicio'} - {fecha_fin or 'Actualidad'}"
             
-            # Headers
-            headers = ["Fecha/Hora", "Usuario", "Email", "Punto QR", "Código", "Observaciones"]
+            # Headers - COLUMNAS ACTUALIZADAS
+            headers = ["Fecha", "Hora", "Punto Visitado", "Guardia", "Estatus", "Observaciones"]
             ws.append([])  # Fila vacía
             ws.append(headers)
             
@@ -338,7 +362,6 @@ async def exportar_excel(
             for visita in visitas:
                 # Obtener nombres
                 usuario_nombre = "Desconocido"
-                usuario_email = ""
                 if visita.get("usuario_id"):
                     if visita["usuario_id"] not in usuarios_cache:
                         try:
@@ -349,10 +372,8 @@ async def exportar_excel(
                             usuarios_cache[visita["usuario_id"]] = {"nombre": "Desconocido", "email": ""}
                     
                     usuario_nombre = usuarios_cache[visita["usuario_id"]].get("nombre", "Desconocido")
-                    usuario_email = usuarios_cache[visita["usuario_id"]].get("email", "")
                 
                 punto_nombre = "Desconocido"
-                punto_codigo = ""
                 if visita.get("punto_qr_id"):
                     if visita["punto_qr_id"] not in puntos_cache:
                         try:
@@ -363,24 +384,27 @@ async def exportar_excel(
                             puntos_cache[visita["punto_qr_id"]] = {"nombre": "Desconocido", "qr_code": ""}
                     
                     punto_nombre = puntos_cache[visita["punto_qr_id"]].get("nombre", "Desconocido")
-                    punto_codigo = puntos_cache[visita["punto_qr_id"]].get("qr_code", "")
                 
                 # Formatear fecha con zona horaria del usuario
                 created_at = visita.get("created_at", "")
+                fecha_str = ""
+                hora_str = ""
                 if created_at:
                     try:
                         dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                         dt_local = dt.astimezone(user_tz)
-                        created_at = dt_local.strftime('%d/%m/%Y %H:%M')
+                        fecha_str = dt_local.strftime('%d/%m/%Y')
+                        hora_str = dt_local.strftime('%H:%M')
                     except:
                         pass
                 
+                # COLUMNAS ACTUALIZADAS: Fecha, Hora, Punto, Guardia, Estatus, Observaciones
                 row_data = [
-                    created_at,
-                    usuario_nombre,
-                    usuario_email,
+                    fecha_str,
+                    hora_str,
                     punto_nombre,
-                    punto_codigo,
+                    usuario_nombre,
+                    "Visitado",  # Estatus
                     visita.get("observaciones", "")
                 ]
                 ws.append(row_data)
@@ -390,12 +414,12 @@ async def exportar_excel(
                     ws.cell(row=ws.max_row, column=col).border = border
             
             # Ajustar anchos de columna
-            ws.column_dimensions['A'].width = 18
-            ws.column_dimensions['B'].width = 25
-            ws.column_dimensions['C'].width = 30
-            ws.column_dimensions['D'].width = 30
-            ws.column_dimensions['E'].width = 25
-            ws.column_dimensions['F'].width = 40
+            ws.column_dimensions['A'].width = 12  # Fecha
+            ws.column_dimensions['B'].width = 8   # Hora
+            ws.column_dimensions['C'].width = 30  # Punto
+            ws.column_dimensions['D'].width = 25  # Guardia
+            ws.column_dimensions['E'].width = 12  # Estatus
+            ws.column_dimensions['F'].width = 40  # Observaciones
             
             # Agregar hoja de estadísticas
             ws_stats = wb.create_sheet("Estadísticas")
@@ -435,6 +459,7 @@ async def exportar_excel(
 async def exportar_pdf(
     fecha_inicio: Optional[str] = Query(None),
     fecha_fin: Optional[str] = Query(None),
+    servicio_id: Optional[int] = Query(None),
     tipo: str = Query("visitas", regex="^(visitas|ranking|alertas)$"),
     timezone: str = Query("UTC"),
     current_user: UserResponse = Depends(get_current_user)
@@ -497,6 +522,12 @@ async def exportar_pdf(
             response = query.execute()
             visitas = response.data
             
+            # ⭐ FILTRAR POR SERVICIO_ID ⭐
+            if servicio_id:
+                puntos_resp = supabase.table("puntos_qr").select("id").eq("servicio_id", servicio_id).execute()
+                puntos_ids = [p["id"] for p in puntos_resp.data]
+                visitas = [v for v in visitas if v.get("punto_qr_id") in puntos_ids]
+            
             # Estadísticas
             stats_data = [
                 ["Estadística", "Valor"],
@@ -520,11 +551,11 @@ async def exportar_pdf(
             elements.append(stats_table)
             elements.append(Spacer(1, 0.5*inch))
             
-            # Tabla de visitas (limitada a primeras 50)
+            # Tabla de visitas (limitada a primeras 50) - COLUMNAS ACTUALIZADAS
             elements.append(Paragraph("<b>ÚLTIMAS VISITAS (Máx. 50)</b>", styles['Heading2']))
             elements.append(Spacer(1, 0.2*inch))
             
-            table_data = [["Fecha/Hora", "Usuario", "Punto QR"]]
+            table_data = [["Fecha", "Hora", "Punto", "Guardia"]]
             
             usuarios_cache = {}
             puntos_cache = {}
@@ -555,17 +586,20 @@ async def exportar_pdf(
                 
                 # Formatear fecha con zona horaria del usuario
                 created_at = visita.get("created_at", "")
+                fecha_str = ""
+                hora_str = ""
                 if created_at:
                     try:
                         dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                         dt_local = dt.astimezone(user_tz)
-                        created_at = dt_local.strftime('%d/%m/%Y %H:%M')
+                        fecha_str = dt_local.strftime('%d/%m/%Y')
+                        hora_str = dt_local.strftime('%H:%M')
                     except:
                         pass
                 
-                table_data.append([created_at, usuario_nombre, punto_nombre])
+                table_data.append([fecha_str, hora_str, punto_nombre, usuario_nombre])
             
-            visits_table = Table(table_data, colWidths=[2*inch, 2.5*inch, 2.5*inch])
+            visits_table = Table(table_data, colWidths=[1.5*inch, 1*inch, 2.5*inch, 2*inch])
             visits_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
