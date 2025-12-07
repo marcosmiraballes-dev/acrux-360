@@ -159,6 +159,19 @@ export const serviciosAPI = {
     return response.json();
   },
 
+  async reactivar(id) {
+    const response = await fetch(`${API_BASE_URL}/servicios/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ activo: true })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al reactivar servicio');
+    }
+    return response.json();
+  },
+
   async estadisticas() {
     const servicios = await this.listar();
     return {
@@ -219,6 +232,19 @@ export const puntosAdminAPI = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Error al eliminar punto QR');
+    }
+    return response.json();
+  },
+
+  async reactivar(id) {
+    const response = await fetch(`${API_BASE_URL}/admin/puntos/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ activo: true })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al reactivar punto QR');
     }
     return response.json();
   },

@@ -374,7 +374,7 @@ const ReportesAdmin = () => {
                         <td>
                           <span className="badge badge-success">✓ Visitado</span>
                         </td>
-                        <td>{visita.observaciones || '-'}</td>
+                        <td>{visita.observacion || visita.observaciones || '-'}</td>
                       </tr>
                     );
                   })}

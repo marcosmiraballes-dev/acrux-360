@@ -254,7 +254,7 @@ async def eliminar_servicio(
         )
     
     # Verificar si tiene puntos QR asociados
-    puntos = supabase.table("puntos_control").select("id", count="exact").eq("servicio_id", servicio_id).execute()
+    puntos = supabase.table("puntos_qr").select("id", count="exact").eq("servicio_id", servicio_id).execute()
     if puntos.count > 0 and permanente:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

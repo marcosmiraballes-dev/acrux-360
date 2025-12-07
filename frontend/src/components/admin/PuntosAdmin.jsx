@@ -76,7 +76,7 @@ const PuntosAdmin = ({ onUpdate }) => {
         alert('Punto QR actualizado correctamente');
       } else {
         const nuevoPunto = await puntosAdminAPI.crear(formData);
-        alert(`Punto QR creado. Código: ${nuevoPunto.codigo_qr}`);
+        alert(`Punto QR creado. Código: ${nuevoPunto.qr_code}`);
       }
       
       resetForm();
@@ -114,6 +114,20 @@ const PuntosAdmin = ({ onUpdate }) => {
     } catch (error) {
       console.error('Error eliminando punto:', error);
       alert(error.response?.data?.detail || 'Error al eliminar punto');
+    }
+  };
+
+  const handleReactivar = async (punto) => {
+    if (!confirm(`¿Reactivar el punto "${punto.nombre}"?`)) return;
+    
+    try {
+      await puntosAdminAPI.reactivar(punto.id);
+      alert('Punto QR reactivado correctamente');
+      cargarDatos();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error reactivando punto:', error);
+      alert(error.response?.data?.detail || 'Error al reactivar punto');
     }
   };
 
@@ -356,7 +370,7 @@ const PuntosAdmin = ({ onUpdate }) => {
             <tbody>
               {puntos.map((punto) => (
                 <tr key={punto.id}>
-                  <td><code>{punto.codigo_qr}</code></td>
+                  <td><code>{punto.qr_code}</code></td>
                   <td>{punto.nombre}</td>
                   <td>{punto.servicio_nombre || '-'}</td>
                   <td>
@@ -364,7 +378,7 @@ const PuntosAdmin = ({ onUpdate }) => {
                       {punto.latitud.toFixed(6)}, {punto.longitud.toFixed(6)}
                     </small>
                   </td>
-                  <td>{punto.radio_validacion}</td>
+                  <td>{punto.radio_validacion || 50}</td>
                   <td>
                     <span className={`status-badge ${punto.activo ? 'activo' : 'inactivo'}`}>
                       {punto.activo ? '✅' : '❌'}
@@ -378,13 +392,24 @@ const PuntosAdmin = ({ onUpdate }) => {
                     >
                       ✏️
                     </button>
-                    <button 
-                      className="btn-icon delete"
-                      onClick={() => handleDelete(punto)}
-                      title="Eliminar"
-                    >
-                      🗑️
-                    </button>
+                    {punto.activo ? (
+                      <button 
+                        className="btn-icon delete"
+                        onClick={() => handleDelete(punto)}
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn-icon reactivar"
+                        onClick={() => handleReactivar(punto)}
+                        title="Reactivar"
+                        style={{ background: '#4caf50' }}
+                      >
+                        ✓
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

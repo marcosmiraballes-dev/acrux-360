@@ -130,6 +130,70 @@ const ReportesSupervisor = ({ servicioId }) => {
     }
   };
 
+  const exportarIncidenciasExcel = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const hoy = new Date().toISOString().split('T')[0];
+      const params = new URLSearchParams();
+      params.append('fecha_inicio', hoy + 'T00:00:00Z');
+      params.append('fecha_fin', hoy + 'T23:59:59Z');
+      params.append('servicio_id', servicioId);
+      params.append('tipo', 'incidencias');
+      params.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+      const blob = await reportesAPI.exportarExcel(params.toString());
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `incidencias_${hoy}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setSuccess('Incidencias del día exportadas a Excel');
+    } catch (err) {
+      setError(err.message || 'Error al exportar incidencias');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportarIncidenciasPDF = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const hoy = new Date().toISOString().split('T')[0];
+      const params = new URLSearchParams();
+      params.append('fecha_inicio', hoy + 'T00:00:00Z');
+      params.append('fecha_fin', hoy + 'T23:59:59Z');
+      params.append('servicio_id', servicioId);
+      params.append('tipo', 'incidencias');
+      params.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+      const blob = await reportesAPI.exportarPDF(params.toString());
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `incidencias_${hoy}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setSuccess('Incidencias del día exportadas a PDF');
+    } catch (err) {
+      setError(err.message || 'Error al exportar incidencias');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const limpiarFiltros = () => {
     setPuntoQrId('');
     const hace7Dias = new Date();
@@ -237,6 +301,27 @@ const ReportesSupervisor = ({ servicioId }) => {
             className="btn btn-secondary"
           >
             🔄 Limpiar Filtros
+          </button>
+          
+          {/* Separador */}
+          <div style={{ width: '100%', borderTop: '1px solid #ddd', margin: '10px 0' }}></div>
+          
+          {/* Botones de Incidencias del Día */}
+          <button 
+            onClick={exportarIncidenciasExcel} 
+            disabled={loading}
+            className="btn btn-warning"
+            style={{ background: '#ff9800' }}
+          >
+            🚨 Incidencias Hoy (Excel)
+          </button>
+          <button 
+            onClick={exportarIncidenciasPDF} 
+            disabled={loading}
+            className="btn btn-warning"
+            style={{ background: '#ff9800' }}
+          >
+            🚨 Incidencias Hoy (PDF)
           </button>
         </div>
       </div>

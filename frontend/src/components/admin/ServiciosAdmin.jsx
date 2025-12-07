@@ -98,6 +98,20 @@ const ServiciosAdmin = ({ onUpdate }) => {
     }
   };
 
+  const handleReactivar = async (servicio) => {
+    if (!confirm(`¿Reactivar el servicio "${servicio.nombre}"?`)) return;
+    
+    try {
+      await serviciosAPI.reactivar(servicio.id);
+      alert('Servicio reactivado correctamente');
+      cargarServicios();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error reactivando servicio:', error);
+      alert(error.response?.data?.detail || 'Error al reactivar servicio');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       nombre: '',
@@ -282,13 +296,24 @@ const ServiciosAdmin = ({ onUpdate }) => {
                 >
                   ✏️ Editar
                 </button>
-                <button 
-                  className="btn-icon delete"
-                  onClick={() => handleDelete(servicio)}
-                  title="Eliminar"
-                >
-                  🗑️ Eliminar
-                </button>
+                {servicio.activo ? (
+                  <button 
+                    className="btn-icon delete"
+                    onClick={() => handleDelete(servicio)}
+                    title="Eliminar"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                ) : (
+                  <button 
+                    className="btn-icon reactivar"
+                    onClick={() => handleReactivar(servicio)}
+                    title="Reactivar"
+                    style={{ background: '#4caf50' }}
+                  >
+                    ✓ Reactivar
+                  </button>
+                )}
               </div>
             </div>
           ))}

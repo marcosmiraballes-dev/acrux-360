@@ -6,7 +6,7 @@ from app.auth import get_current_user
 from app.database import get_supabase
 import uuid
 
-router = APIRouter(prefix="/puntos", tags=["puntos"])
+router = APIRouter(prefix="/admin/puntos", tags=["admin-puntos"])
 
 # Schemas
 class PuntoCreate(BaseModel):
@@ -15,7 +15,6 @@ class PuntoCreate(BaseModel):
     latitud: float
     longitud: float
     servicio_id: int
-    radio_validacion: int = 50  # metros
     activo: bool = True
 
 class PuntoUpdate(BaseModel):
@@ -24,34 +23,30 @@ class PuntoUpdate(BaseModel):
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     servicio_id: Optional[int] = None
-    radio_validacion: Optional[int] = None
     activo: Optional[bool] = None
 
 class PuntoResponse(BaseModel):
     id: int
-    codigo_qr: str
+    qr_code: str
     nombre: str
     descripcion: Optional[str]
     latitud: float
     longitud: float
     servicio_id: int
-    radio_validacion: int
     activo: bool
-    fecha_creacion: datetime
-    ultima_modificacion: Optional[datetime]
+    created_at: datetime
 
 class PuntoConServicio(BaseModel):
     id: int
-    codigo_qr: str
+    qr_code: str
     nombre: str
     descripcion: Optional[str]
     latitud: float
     longitud: float
     servicio_id: int
-    radio_validacion: int
     activo: bool
     servicio_nombre: Optional[str]
-    fecha_creacion: datetime
+    created_at: datetime
 
 # Dependency para admin
 def require_admin(current_user = Depends(get_current_user)):
@@ -71,10 +66,7 @@ async def listar_puntos(
 ):
     supabase = get_supabase()
     
-    # Query con join a servicios
-    query = supabase.table("puntos_control").select(
-        "*, servicios(nombre)"
-    )
+    query = supabase.table("puntos_qr").select("*")
     
     if activo is not None:
         query = query.eq("activo", activo)
@@ -83,12 +75,17 @@ async def listar_puntos(
     
     result = query.order("nombre").execute()
     
-    # Formatear respuesta
+    # Enriquecer con nombre de servicio
     puntos = []
     for punto in result.data:
         servicio_nombre = None
-        if punto.get("servicios"):
-            servicio_nombre = punto["servicios"].get("nombre")
+        if punto.get("servicio_id"):
+            try:
+                servicio = supabase.table("servicios").select("nombre").eq("id", punto["servicio_id"]).execute()
+                if servicio.data:
+                    servicio_nombre = servicio.data[0].get("nombre")
+            except:
+                pass
         
         puntos.append({
             **punto,
@@ -104,7 +101,7 @@ async def obtener_punto(
     current_user: dict = Depends(get_current_user)
 ):
     supabase = get_supabase()
-    result = supabase.table("puntos_control").select("*").eq("id", punto_id).execute()
+    result = supabase.table("puntos_qr").select("*").eq("id", punto_id).execute()
     
     if not result.data:
         raise HTTPException(
@@ -142,35 +139,26 @@ async def crear_punto(
             detail="Longitud debe estar entre -180 y 180"
         )
     
-    # Validar radio
-    if punto.radio_validacion < 10 or punto.radio_validacion > 500:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Radio de validación debe estar entre 10 y 500 metros"
-        )
-    
     # Generar código QR único
-    codigo_qr = f"ACRUX-{uuid.uuid4().hex[:12].upper()}"
+    qr_code = f"ACRUX-{uuid.uuid4().hex[:12].upper()}"
     
-    # Verificar que el código no existe (muy improbable pero por seguridad)
-    existing = supabase.table("puntos_control").select("id").eq("codigo_qr", codigo_qr).execute()
+    # Verificar que el código no existe
+    existing = supabase.table("puntos_qr").select("id").eq("qr_code", qr_code).execute()
     while existing.data:
-        codigo_qr = f"ACRUX-{uuid.uuid4().hex[:12].upper()}"
-        existing = supabase.table("puntos_control").select("id").eq("codigo_qr", codigo_qr).execute()
+        qr_code = f"ACRUX-{uuid.uuid4().hex[:12].upper()}"
+        existing = supabase.table("puntos_qr").select("id").eq("qr_code", qr_code).execute()
     
     nuevo_punto = {
-        "codigo_qr": codigo_qr,
+        "qr_code": qr_code,
         "nombre": punto.nombre,
         "descripcion": punto.descripcion,
         "latitud": punto.latitud,
         "longitud": punto.longitud,
         "servicio_id": punto.servicio_id,
-        "radio_validacion": punto.radio_validacion,
-        "activo": punto.activo,
-        "fecha_creacion": datetime.utcnow().isoformat()
+        "activo": punto.activo
     }
     
-    result = supabase.table("puntos_control").insert(nuevo_punto).execute()
+    result = supabase.table("puntos_qr").insert(nuevo_punto).execute()
     return result.data[0]
 
 # PUT - Actualizar punto QR
@@ -183,7 +171,7 @@ async def actualizar_punto(
     supabase = get_supabase()
     
     # Verificar que existe
-    existing = supabase.table("puntos_control").select("*").eq("id", punto_id).execute()
+    existing = supabase.table("puntos_qr").select("*").eq("id", punto_id).execute()
     if not existing.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -224,20 +212,10 @@ async def actualizar_punto(
             )
         update_data["servicio_id"] = punto_update.servicio_id
     
-    if punto_update.radio_validacion:
-        if punto_update.radio_validacion < 10 or punto_update.radio_validacion > 500:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Radio inválido"
-            )
-        update_data["radio_validacion"] = punto_update.radio_validacion
-    
     if punto_update.activo is not None:
         update_data["activo"] = punto_update.activo
     
-    update_data["ultima_modificacion"] = datetime.utcnow().isoformat()
-    
-    result = supabase.table("puntos_control").update(update_data).eq("id", punto_id).execute()
+    result = supabase.table("puntos_qr").update(update_data).eq("id", punto_id).execute()
     return result.data[0]
 
 # DELETE - Eliminar punto QR
@@ -250,7 +228,7 @@ async def eliminar_punto(
     supabase = get_supabase()
     
     # Verificar que existe
-    existing = supabase.table("puntos_control").select("id").eq("id", punto_id).execute()
+    existing = supabase.table("puntos_qr").select("id").eq("id", punto_id).execute()
     if not existing.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -258,7 +236,7 @@ async def eliminar_punto(
         )
     
     # Verificar si tiene visitas asociadas
-    visitas = supabase.table("visitas").select("id", count="exact").eq("punto_id", punto_id).execute()
+    visitas = supabase.table("visitas").select("id", count="exact").eq("punto_qr_id", punto_id).execute()
     if visitas.count > 0 and permanente:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -267,49 +245,11 @@ async def eliminar_punto(
     
     if permanente:
         # Solo si no hay visitas
-        supabase.table("puntos_control").delete().eq("id", punto_id).execute()
+        supabase.table("puntos_qr").delete().eq("id", punto_id).execute()
     else:
-        # Soft delete
-        supabase.table("puntos_control").update({
-            "activo": False,
-            "ultima_modificacion": datetime.utcnow().isoformat()
+        # Soft delete (desactivar)
+        supabase.table("puntos_qr").update({
+            "activo": False
         }).eq("id", punto_id).execute()
     
     return None
-
-# GET - Estadísticas de puntos
-@router.get("/estadisticas/resumen")
-async def estadisticas_puntos(current_user: dict = Depends(get_current_user)):
-    supabase = get_supabase()
-    
-    total = supabase.table("puntos_control").select("id", count="exact").execute()
-    activos = supabase.table("puntos_control").select("id", count="exact").eq("activo", True).execute()
-    
-    # Por servicio
-    por_servicio = supabase.table("puntos_control").select(
-        "servicio_id, servicios(nombre)",
-        count="exact"
-    ).eq("activo", True).execute()
-    
-    return {
-        "total": total.count,
-        "activos": activos.count,
-        "inactivos": total.count - activos.count
-    }
-
-# GET - Obtener punto por código QR (mantener compatibilidad)
-@router.get("/qr/{codigo_qr}")
-async def obtener_punto_por_qr(
-    codigo_qr: str,
-    current_user: dict = Depends(get_current_user)
-):
-    supabase = get_supabase()
-    result = supabase.table("puntos_control").select("*").eq("codigo_qr", codigo_qr).eq("activo", True).execute()
-    
-    if not result.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Código QR no encontrado o inactivo"
-        )
-    
-    return result.data[0]

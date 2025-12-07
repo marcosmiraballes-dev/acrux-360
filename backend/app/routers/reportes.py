@@ -279,7 +279,7 @@ async def exportar_excel(
     fecha_inicio: Optional[str] = Query(None),
     fecha_fin: Optional[str] = Query(None),
     servicio_id: Optional[int] = Query(None),
-    tipo: str = Query("visitas", regex="^(visitas|ranking|alertas)$"),
+    tipo: str = Query("visitas", regex="^(visitas|ranking|alertas|incidencias)$"),
     timezone: str = Query("UTC"),
     current_user: UserResponse = Depends(get_current_user)
 ):
@@ -311,7 +311,7 @@ async def exportar_excel(
         except:
             user_tz = pytz.UTC
         
-        if tipo == "visitas":
+        if tipo == "visitas" or tipo == "incidencias":
             # Obtener datos de visitas
             query = supabase.table("visitas").select("*")
             if fecha_inicio:
@@ -321,6 +321,10 @@ async def exportar_excel(
                 from datetime import timedelta
                 fecha_fin_dt = fecha_fin_dt + timedelta(days=1)
                 query = query.lt("created_at", fecha_fin_dt.isoformat())
+            
+            # Filtrar por tipo de visita si es incidencias
+            if tipo == "incidencias":
+                query = query.eq("tipo", "incidencia")
             
             query = query.order("created_at", desc=True)
             response = query.execute()
@@ -333,8 +337,8 @@ async def exportar_excel(
                 visitas = [v for v in visitas if v.get("punto_qr_id") in puntos_ids]
             
             # Título y metadatos
-            ws.title = "Reporte de Visitas"
-            ws['A1'] = "REPORTE DE VISITAS - ACRUX 360"
+            ws.title = "Reporte de Incidencias" if tipo == "incidencias" else "Reporte de Visitas"
+            ws['A1'] = f"REPORTE DE {'INCIDENCIAS' if tipo == 'incidencias' else 'VISITAS'} - ACRUX 360"
             ws['A1'].font = Font(size=16, bold=True)
             ws.merge_cells('A1:F1')
             
@@ -464,7 +468,7 @@ async def exportar_pdf(
     fecha_inicio: Optional[str] = Query(None),
     fecha_fin: Optional[str] = Query(None),
     servicio_id: Optional[int] = Query(None),
-    tipo: str = Query("visitas", regex="^(visitas|ranking|alertas)$"),
+    tipo: str = Query("visitas", regex="^(visitas|ranking|alertas|incidencias)$"),
     timezone: str = Query("UTC"),
     current_user: UserResponse = Depends(get_current_user)
 ):
@@ -511,7 +515,7 @@ async def exportar_pdf(
             elements.append(Paragraph(f"<b>Período:</b> {fecha_inicio or 'Inicio'} - {fecha_fin or 'Actualidad'}", meta_style))
         elements.append(Spacer(1, 0.3*inch))
         
-        if tipo == "visitas":
+        if tipo == "visitas" or tipo == "incidencias":
             # Obtener datos
             query = supabase.table("visitas").select("*")
             if fecha_inicio:
@@ -521,6 +525,10 @@ async def exportar_pdf(
                 from datetime import timedelta
                 fecha_fin_dt = fecha_fin_dt + timedelta(days=1)
                 query = query.lt("created_at", fecha_fin_dt.isoformat())
+            
+            # Filtrar por tipo de visita si es incidencias
+            if tipo == "incidencias":
+                query = query.eq("tipo", "incidencia")
             
             query = query.order("created_at", desc=True).limit(100)  # Limitar para PDF
             response = query.execute()
