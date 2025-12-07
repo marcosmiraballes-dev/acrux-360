@@ -104,6 +104,20 @@ const UsuariosAdmin = ({ onUpdate }) => {
     }
   };
 
+  const handleReactivar = async (usuario) => {
+    if (!confirm(`¿Reactivar al usuario ${usuario.nombre} ${usuario.apellido}?`)) return;
+    
+    try {
+      await usuariosAPI.actualizar(usuario.id, { activo: true });
+      alert('Usuario reactivado correctamente');
+      cargarDatos();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error reactivando usuario:', error);
+      alert(error.response?.data?.detail || 'Error al reactivar usuario');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       email: '',
@@ -333,13 +347,24 @@ const UsuariosAdmin = ({ onUpdate }) => {
                     >
                       ✏️
                     </button>
-                    <button 
-                      className="btn-icon delete"
-                      onClick={() => handleDelete(usuario)}
-                      title="Eliminar"
-                    >
-                      🗑️
-                    </button>
+                    {usuario.activo ? (
+                      <button 
+                        className="btn-icon delete"
+                        onClick={() => handleDelete(usuario)}
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn-icon reactivar"
+                        onClick={() => handleReactivar(usuario)}
+                        title="Reactivar"
+                        style={{ background: '#4caf50' }}
+                      >
+                        ✓
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

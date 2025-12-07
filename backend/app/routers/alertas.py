@@ -71,7 +71,7 @@ async def get_alertas(
     
     # Generar alertas
     alertas = []
-    now = datetime.utcnow()
+    now = datetime.utcnow().replace(tzinfo=None)  # Sin timezone para comparación
     tiempo_alerta_minutos = 70  # Alertar si no se visita en 70 minutos
     
     for punto in puntos:
@@ -89,8 +89,11 @@ async def get_alertas(
                 prioridad="alta"
             ))
         else:
+            # Remover timezone para comparación
+            ultima_visita_naive = ultima_visita.replace(tzinfo=None)
+            
             # Calcular tiempo sin visitar
-            minutos_sin_visitar = int((now - ultima_visita).total_seconds() / 60)
+            minutos_sin_visitar = int((now - ultima_visita_naive).total_seconds() / 60)
             
             if minutos_sin_visitar > tiempo_alerta_minutos:
                 # Determinar prioridad

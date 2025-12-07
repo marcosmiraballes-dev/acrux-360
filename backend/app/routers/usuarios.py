@@ -65,6 +65,35 @@ async def listar_usuarios(
     result = query.order("created_at", desc=True).execute()
     return result.data
 
+# ⭐ GET - Listar guardias (DEBE IR ANTES DE /{usuario_id}) ⭐
+@router.get("/guardias", response_model=List[UsuarioResponse])
+async def listar_guardias(
+    servicio_id: Optional[int] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Obtiene listado de guardias.
+    - Supervisor: solo guardias de su servicio
+    - Administrador: puede filtrar por servicio o ver todos
+    """
+    supabase = get_supabase()
+    
+    query = supabase.table("usuarios").select("*").eq("rol", "guardia").eq("activo", True)
+    
+    # Aplicar filtros según rol
+    if current_user.rol == "supervisor":
+        if not current_user.servicio_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supervisor sin servicio asignado"
+            )
+        query = query.eq("servicio_id", current_user.servicio_id)
+    elif current_user.rol in ["administrador", "admin"] and servicio_id:
+        query = query.eq("servicio_id", servicio_id)
+    
+    result = query.order("nombre").execute()
+    return result.data
+
 # GET - Obtener usuario por ID
 @router.get("/{usuario_id}", response_model=UsuarioResponse)
 async def obtener_usuario(
@@ -218,32 +247,3 @@ async def eliminar_usuario(
     supabase.table("usuarios").update({"activo": False}).eq("id", usuario_id).execute()
     
     return None
-
-# ⭐ NUEVO ENDPOINT - Listar guardias por servicio ⭐
-@router.get("/guardias", response_model=List[UsuarioResponse])
-async def listar_guardias(
-    servicio_id: Optional[int] = None,
-    current_user = Depends(get_current_user)
-):
-    """
-    Obtiene listado de guardias.
-    - Supervisor: solo guardias de su servicio
-    - Administrador: puede filtrar por servicio o ver todos
-    """
-    supabase = get_supabase()
-    
-    query = supabase.table("usuarios").select("*").eq("rol", "guardia").eq("activo", True)
-    
-    # Aplicar filtros según rol
-    if current_user.rol == "supervisor":
-        if not current_user.servicio_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supervisor sin servicio asignado"
-            )
-        query = query.eq("servicio_id", current_user.servicio_id)
-    elif current_user.rol in ["administrador", "admin"] and servicio_id:
-        query = query.eq("servicio_id", servicio_id)
-    
-    result = query.order("nombre").execute()
-    return result.data

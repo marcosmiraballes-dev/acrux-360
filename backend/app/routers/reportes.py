@@ -93,18 +93,18 @@ async def obtener_reporte_visitas(
         puntos_cache = {}
         
         for visita in visitas:
-            # Obtener nombre de usuario
-            if visita.get("usuario_id"):
-                if visita["usuario_id"] not in usuarios_cache:
+            # Obtener nombre de usuario/guardia
+            if visita.get("guardia_id"):
+                if visita["guardia_id"] not in usuarios_cache:
                     try:
-                        user_resp = supabase.table("usuarios").select("nombre, email").eq("id", visita["usuario_id"]).execute()
+                        user_resp = supabase.table("usuarios").select("nombre, email").eq("id", visita["guardia_id"]).execute()
                         if user_resp.data:
-                            usuarios_cache[visita["usuario_id"]] = user_resp.data[0]
+                            usuarios_cache[visita["guardia_id"]] = user_resp.data[0]
                     except:
-                        usuarios_cache[visita["usuario_id"]] = {"nombre": "Usuario desconocido", "email": ""}
+                        usuarios_cache[visita["guardia_id"]] = {"nombre": "Usuario desconocido", "email": ""}
                 
-                visita["usuario_nombre"] = usuarios_cache[visita["usuario_id"]].get("nombre", "Desconocido")
-                visita["usuario_email"] = usuarios_cache[visita["usuario_id"]].get("email", "")
+                visita["usuario_nombre"] = usuarios_cache[visita["guardia_id"]].get("nombre", "Desconocido")
+                visita["usuario_email"] = usuarios_cache[visita["guardia_id"]].get("email", "")
             
             # Obtener nombre de punto QR
             if visita.get("punto_qr_id"):
@@ -118,11 +118,15 @@ async def obtener_reporte_visitas(
                 
                 visita["punto_nombre"] = puntos_cache[visita["punto_qr_id"]].get("nombre", "Desconocido")
                 visita["punto_codigo"] = puntos_cache[visita["punto_qr_id"]].get("qr_code", "")
+            
+            # Asegurar que observacion esté presente (puede ser None o vacío)
+            if "observacion" not in visita or visita["observacion"] is None:
+                visita["observacion"] = ""
         
         # Calcular estadísticas
         estadisticas = {
             "total_visitas": len(visitas),
-            "usuarios_unicos": len(set(v.get("usuario_id") for v in visitas if v.get("usuario_id"))),
+            "usuarios_unicos": len(set(v.get("guardia_id") for v in visitas if v.get("guardia_id"))),
             "puntos_visitados": len(set(v.get("punto_qr_id") for v in visitas if v.get("punto_qr_id"))),
             "fecha_inicio": fecha_inicio,
             "fecha_fin": fecha_fin
@@ -362,16 +366,16 @@ async def exportar_excel(
             for visita in visitas:
                 # Obtener nombres
                 usuario_nombre = "Desconocido"
-                if visita.get("usuario_id"):
-                    if visita["usuario_id"] not in usuarios_cache:
+                if visita.get("guardia_id"):
+                    if visita["guardia_id"] not in usuarios_cache:
                         try:
-                            user_resp = supabase.table("usuarios").select("nombre, email").eq("id", visita["usuario_id"]).execute()
+                            user_resp = supabase.table("usuarios").select("nombre, email").eq("id", visita["guardia_id"]).execute()
                             if user_resp.data:
-                                usuarios_cache[visita["usuario_id"]] = user_resp.data[0]
+                                usuarios_cache[visita["guardia_id"]] = user_resp.data[0]
                         except:
-                            usuarios_cache[visita["usuario_id"]] = {"nombre": "Desconocido", "email": ""}
+                            usuarios_cache[visita["guardia_id"]] = {"nombre": "Desconocido", "email": ""}
                     
-                    usuario_nombre = usuarios_cache[visita["usuario_id"]].get("nombre", "Desconocido")
+                    usuario_nombre = usuarios_cache[visita["guardia_id"]].get("nombre", "Desconocido")
                 
                 punto_nombre = "Desconocido"
                 if visita.get("punto_qr_id"):
@@ -405,7 +409,7 @@ async def exportar_excel(
                     punto_nombre,
                     usuario_nombre,
                     "Visitado",  # Estatus
-                    visita.get("observaciones", "")
+                    visita.get("observacion", "")
                 ]
                 ws.append(row_data)
                 
@@ -427,7 +431,7 @@ async def exportar_excel(
             ws_stats['A1'].font = Font(size=14, bold=True)
             ws_stats.append([])
             ws_stats.append(["Total de visitas:", len(visitas)])
-            ws_stats.append(["Usuarios únicos:", len(set(v.get("usuario_id") for v in visitas if v.get("usuario_id")))])
+            ws_stats.append(["Usuarios únicos:", len(set(v.get("guardia_id") for v in visitas if v.get("guardia_id")))])
             ws_stats.append(["Puntos visitados:", len(set(v.get("punto_qr_id") for v in visitas if v.get("punto_qr_id")))])
             
         elif tipo == "ranking":
@@ -532,7 +536,7 @@ async def exportar_pdf(
             stats_data = [
                 ["Estadística", "Valor"],
                 ["Total de visitas", str(len(visitas))],
-                ["Usuarios únicos", str(len(set(v.get("usuario_id") for v in visitas if v.get("usuario_id"))))],
+                ["Usuarios únicos", str(len(set(v.get("guardia_id") for v in visitas if v.get("guardia_id"))))],
                 ["Puntos visitados", str(len(set(v.get("punto_qr_id") for v in visitas if v.get("punto_qr_id"))))]
             ]
             
@@ -563,15 +567,15 @@ async def exportar_pdf(
             for visita in visitas[:50]:
                 # Obtener nombres
                 usuario_nombre = "Desconocido"
-                if visita.get("usuario_id"):
-                    if visita["usuario_id"] not in usuarios_cache:
+                if visita.get("guardia_id"):
+                    if visita["guardia_id"] not in usuarios_cache:
                         try:
-                            user_resp = supabase.table("usuarios").select("nombre").eq("id", visita["usuario_id"]).execute()
+                            user_resp = supabase.table("usuarios").select("nombre").eq("id", visita["guardia_id"]).execute()
                             if user_resp.data:
-                                usuarios_cache[visita["usuario_id"]] = user_resp.data[0].get("nombre", "Desconocido")
+                                usuarios_cache[visita["guardia_id"]] = user_resp.data[0].get("nombre", "Desconocido")
                         except:
-                            usuarios_cache[visita["usuario_id"]] = "Desconocido"
-                    usuario_nombre = usuarios_cache[visita["usuario_id"]]
+                            usuarios_cache[visita["guardia_id"]] = "Desconocido"
+                    usuario_nombre = usuarios_cache[visita["guardia_id"]]
                 
                 punto_nombre = "Desconocido"
                 if visita.get("punto_qr_id"):

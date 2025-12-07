@@ -24,6 +24,14 @@ const cleanParams = (params) => {
 
 // ============ USUARIOS ============
 export const usuariosAPI = {
+  async getCurrentUser() {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener usuario actual');
+    return response.json();
+  },
+
   async listar(params = {}) {
     const cleanedParams = cleanParams(params);
     const queryString = new URLSearchParams(cleanedParams).toString();
@@ -73,7 +81,8 @@ export const usuariosAPI = {
       const error = await response.json();
       throw new Error(error.detail || 'Error al eliminar usuario');
     }
-    return response.json();
+    // 204 No Content - no hay body para parsear
+    return { success: true };
   },
 
   async estadisticas() {
@@ -90,6 +99,14 @@ export const usuariosAPI = {
 
 // ============ SERVICIOS ============
 export const serviciosAPI = {
+  async obtener(id) {
+    const response = await fetch(`${API_BASE_URL}/servicios/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener servicio');
+    return response.json();
+  },
+
   async listar(params = {}) {
     const cleanedParams = cleanParams(params);
     const queryString = new URLSearchParams(cleanedParams).toString();

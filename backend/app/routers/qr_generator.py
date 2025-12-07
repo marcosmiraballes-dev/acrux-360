@@ -16,22 +16,22 @@ import tempfile
 router = APIRouter(prefix="/qr-generator", tags=["qr-generator"])
 
 class QRGenerateRequest(BaseModel):
-    punto_ids: List[str]  # Lista de IDs de puntos QR
+    punto_ids: List[int]  # CORREGIDO: int en lugar de str
 
-# Dependency para admin
-def require_admin(current_user = Depends(get_current_user)):
-    if current_user.rol not in ["admin", "administrador"]:
+# Dependency para admin O supervisor
+def require_admin_or_supervisor(current_user = Depends(get_current_user)):
+    if current_user.rol not in ["admin", "administrador", "supervisor"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden generar códigos QR"
+            detail="Solo administradores o supervisores pueden generar códigos QR"
         )
     return current_user
 
 @router.get("/punto/{punto_id}")
 async def generar_qr_individual(
-    punto_id: str,
+    punto_id: int,  # CORREGIDO: int
     size: int = 300,
-    current_user = Depends(require_admin)
+    current_user = Depends(require_admin_or_supervisor)
 ):
     """
     Genera un código QR individual para un punto específico
@@ -49,6 +49,14 @@ async def generar_qr_individual(
         )
     
     punto = result.data[0]
+    
+    # Verificar permisos de supervisor
+    if current_user.rol == "supervisor":
+        if punto["servicio_id"] != current_user.servicio_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este punto"
+            )
     
     # Generar QR
     qr = qrcode.QRCode(
@@ -84,7 +92,7 @@ async def generar_qr_individual(
 @router.post("/generar-pdf")
 async def generar_qr_pdf(
     request: QRGenerateRequest,
-    current_user = Depends(require_admin)
+    current_user = Depends(require_admin_or_supervisor)
 ):
     """
     Genera un PDF con múltiples códigos QR
@@ -103,7 +111,14 @@ async def generar_qr_pdf(
     for punto_id in request.punto_ids:
         result = supabase.table("puntos_qr").select("*").eq("id", punto_id).execute()
         if result.data:
-            puntos.append(result.data[0])
+            punto = result.data[0]
+            
+            # Verificar permisos de supervisor
+            if current_user.rol == "supervisor":
+                if punto["servicio_id"] != current_user.servicio_id:
+                    continue  # Saltar puntos que no son del servicio del supervisor
+            
+            puntos.append(punto)
     
     if not puntos:
         raise HTTPException(
@@ -193,7 +208,7 @@ async def generar_qr_pdf(
 
 @router.get("/preview/{punto_id}")
 async def preview_qr(
-    punto_id: str,
+    punto_id: int,  # CORREGIDO: int
     current_user = Depends(get_current_user)
 ):
     """
@@ -211,6 +226,14 @@ async def preview_qr(
         )
     
     punto = result.data[0]
+    
+    # Verificar permisos de supervisor
+    if current_user.rol == "supervisor":
+        if punto["servicio_id"] != current_user.servicio_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este punto"
+            )
     
     # Generar QR
     qr = qrcode.QRCode(

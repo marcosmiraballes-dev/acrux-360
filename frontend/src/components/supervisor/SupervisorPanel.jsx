@@ -3,7 +3,9 @@ import Dashboard from './Dashboard';
 import MapView from './MapView';
 import GuardiasList from './GuardiasList';
 import RecentVisits from './RecentVisits';
-import Alertas from './Alertas';  // <-- NUEVO
+import Alertas from './Alertas';
+import GeneradorQR from '../admin/GeneradorQR';
+import ReportesSupervisor from './ReportesSupervisor';
 import api from '../../services/api';
 
 function SupervisorPanel({ user }) {
@@ -11,15 +13,15 @@ function SupervisorPanel({ user }) {
   const [visitas, setVisitas] = useState([]);
   const [puntos, setPuntos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [alertasCount, setAlertasCount] = useState(0);  // <-- NUEVO
+  const [alertasCount, setAlertasCount] = useState(0);
 
   useEffect(() => {
     loadData();
-    loadAlertasCount();  // <-- NUEVO
+    loadAlertasCount();
     // Recargar cada minuto
     const interval = setInterval(() => {
       loadData();
-      loadAlertasCount();  // <-- NUEVO
+      loadAlertasCount();
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -39,7 +41,6 @@ function SupervisorPanel({ user }) {
     }
   };
 
-  // <-- NUEVO
   const loadAlertasCount = async () => {
     try {
       const countData = await api.getAlertasCount(user.servicio_id);
@@ -78,7 +79,9 @@ function SupervisorPanel({ user }) {
           { id: 'dashboard', label: '📊 Dashboard' },
           { id: 'mapa', label: '🗺️ Mapa' },
           { id: 'guardias', label: '👥 Guardias' },
-          { id: 'alertas', label: '🔔 Alertas', badge: alertasCount },  // <-- NUEVO
+          { id: 'alertas', label: '🔔 Alertas', badge: alertasCount },
+          { id: 'qr', label: '📱 Códigos QR' },
+          { id: 'reportes', label: '📊 Reportes' },
           { id: 'recientes', label: '🕐 Recientes' }
         ].map(tab => (
           <button
@@ -128,7 +131,9 @@ function SupervisorPanel({ user }) {
         {activeTab === 'dashboard' && <Dashboard servicioId={user.servicio_id} />}
         {activeTab === 'mapa' && <MapView puntos={puntos} visitas={visitas} />}
         {activeTab === 'guardias' && <GuardiasList servicioId={user.servicio_id} visitas={visitas} />}
-        {activeTab === 'alertas' && <Alertas servicioId={user.servicio_id} />}  {/* <-- NUEVO */}
+        {activeTab === 'alertas' && <Alertas servicioId={user.servicio_id} />}
+        {activeTab === 'qr' && <GeneradorQR servicioId={user.servicio_id} />}
+        {activeTab === 'reportes' && <ReportesSupervisor servicioId={user.servicio_id} />}
         {activeTab === 'recientes' && <RecentVisits visitas={visitas} />}
       </div>
     </div>

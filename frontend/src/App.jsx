@@ -88,7 +88,7 @@ function App() {
   };
 
   const handleSimulateQR = () => {
-    const simulatedQR = 'servicio:a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d:punto:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const simulatedQR = 'servicio:3:punto:1';
     console.log('QR simulado:', simulatedQR);
     setQrData(simulatedQR);
     setView('form');
